@@ -1,0 +1,8 @@
+{
+  "esearchresult": {
+    "count": "2",
+    "retmax": "100",
+    "retstart": "0",
+    "idlist": ["12345678", "87654321"]
+  }
+}

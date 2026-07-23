@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation Status="MEDLINE" Owner="NLM">
+      <PMID Version="1">12345678</PMID>
+      <Article PubModel="Print">
+        <ArticleTitle>Dupilumab improves EASI in atopic dermatitis: a phase 2 study</ArticleTitle>
+        <Abstract>
+          <AbstractText Label="BACKGROUND">IL-4Rα blockade was evaluated in AD patients.</AbstractText>
+          <AbstractText Label="RESULTS">EASI-75 response was significantly improved.</AbstractText>
+        </Abstract>
+        <ELocationID EIdType="doi" ValidYN="Y">10.1000/test.ad.001</ELocationID>
+      </Article>
+      <DateCompleted>
+        <Year>2026</Year>
+        <Month>06</Month>
+        <Day>15</Day>
+      </DateCompleted>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">12345678</ArticleId>
+        <ArticleId IdType="doi">10.1000/test.ad.001</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>
