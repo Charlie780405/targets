@@ -1,0 +1,27 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT00000001",
+      "briefTitle": "A Study of IL-4Rα Antagonist in Atopic Dermatitis"
+    },
+    "statusModule": {
+      "overallStatus": "RECRUITING",
+      "primaryCompletionDateStruct": {"date": "2026-12", "type": "ESTIMATED"},
+      "completionDateStruct": {"date": "2027-06", "type": "ESTIMATED"}
+    },
+    "designModule": {
+      "phases": ["PHASE2"],
+      "enrollmentInfo": {"count": 100, "type": "ESTIMATED"}
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [{"measure": "EASI-75 at Week 16"}]
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {"name": "Example Pharma Inc."}
+    },
+    "contactsLocationsModule": {
+      "locations": [{"city": "Boston", "state": "MA", "country": "United States"}]
+    }
+  },
+  "hasResults": false
+}
