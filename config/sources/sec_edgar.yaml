@@ -1,0 +1,12 @@
+source_id: sec_edgar
+source_name: SEC EDGAR
+kind: api
+evidence_level: C
+enabled: true
+rate_limit_rps: 2
+forms:
+  - 8-K
+  - 6-K
+notes: >-
+  使用 data.sec.gov submissions API；须带合规 User-Agent（含联系邮箱）。
+  仅采集 orgs-seed 中配置了 sec_cik 的公司。

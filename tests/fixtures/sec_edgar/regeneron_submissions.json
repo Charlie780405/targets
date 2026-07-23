@@ -1,0 +1,12 @@
+{
+  "cik": "0000872589",
+  "name": "REGENERON PHARMACEUTICALS INC",
+  "filings": {
+    "recent": {
+      "form": ["8-K", "10-Q", "8-K"],
+      "filingDate": ["2026-06-10", "2026-05-01", "2026-04-01"],
+      "accessionNumber": ["0000872589-26-000101", "0000872589-26-000050", "0000872589-26-000010"],
+      "primaryDocument": ["regn-20260610.htm", "regn-20260501.htm", "regn-20260401.htm"]
+    }
+  }
+}

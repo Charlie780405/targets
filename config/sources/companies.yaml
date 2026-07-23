@@ -9,7 +9,7 @@ rate_limit_rps: 2
 companies:
   - org_id: regeneron
     ir_url: https://investor.regeneron.com/news-releases
-    rss_url: null
+    rss_url: https://investor.regeneron.com/news-releases/rss
   - org_id: sanofi
     ir_url: https://www.sanofi.com/en/media-room/press-releases
     rss_url: null

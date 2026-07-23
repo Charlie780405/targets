@@ -6,6 +6,7 @@ organizations:
     name_zh: 再生元
     aliases: [Regeneron, REGN]
     country: US
+    sec_cik: "872589"
 
   - org_id: sanofi
     canonical_name: Sanofi
@@ -24,6 +25,7 @@ organizations:
     name_zh: 联邦生物 / Connect
     aliases: [Connect, CNTB]
     country: CN/US
+    sec_cik: "1734342"
 
   - org_id: qyuns
     canonical_name: Qyuns Therapeutics
