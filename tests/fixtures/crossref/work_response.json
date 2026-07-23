@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "message-type": "work",
+  "message": {
+    "DOI": "10.1000/test.ad.001",
+    "title": ["Dupilumab improves EASI in atopic dermatitis"],
+    "publisher": "Example Press",
+    "type": "journal-article",
+    "published-print": {
+      "date-parts": [[2026, 6, 15]]
+    },
+    "URL": "https://doi.org/10.1000/test.ad.001"
+  }
+}

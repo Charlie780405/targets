@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation Status="MEDLINE" Owner="NLM">
+      <PMID Version="1">87654321</PMID>
+      <Article PubModel="Print">
+        <ArticleTitle>Retracted: IL-4Rα study report</ArticleTitle>
+        <Abstract>
+          <AbstractText>This article has been retracted.</AbstractText>
+        </Abstract>
+        <PublicationTypeList>
+          <PublicationType UI="D016440">Retracted Publication</PublicationType>
+        </PublicationTypeList>
+      </Article>
+      <DateCompleted>
+        <Year>2025</Year>
+        <Month>01</Month>
+        <Day>01</Day>
+      </DateCompleted>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">87654321</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>
