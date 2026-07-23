@@ -1,0 +1,26 @@
+# 首发靶点（PLAN-001 D1 已锁定）
+# SSOT：靶点别名归一由 packages/entity_resolution/target_dictionary.py 读取
+target_id: TGT_001
+canonical_name: IL-4Rα
+name_en: Interleukin-4 receptor subunit alpha
+gene: IL4R
+aliases:
+  - IL4R
+  - IL-4R
+  - IL-4 receptor alpha
+  - IL-4Ra
+  - IL4RA
+  - CD124
+  - interleukin-4 receptor subunit alpha
+  - interleukin 4 receptor alpha
+# 排除误匹配（大小写/连字符已在归一层处理，此处放语义排除）
+exclude_patterns: []
+pathway: Type 2 inflammation (IL-4 / IL-13 signaling)
+# 关注的适应症（对应 config/indications/*.yaml 的 code）
+indications:
+  - atopic_dermatitis
+  - csu
+  - prurigo_nodularis
+notes: >-
+  IL-4Rα 拮抗可同时阻断 IL-4 与 IL-13 信号，是 2 型炎症核心靶点。
+  首发选它因 dupilumab 生态活跃、跨适应症事件量足，便于人工判断输出质量。

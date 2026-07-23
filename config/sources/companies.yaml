@@ -1,0 +1,33 @@
+source_id: companies
+source_name: Company IR / Press Releases
+kind: rss                  # RSS 优先，无 RSS 才做稳定页面抓取（scrape）
+evidence_level: C
+enabled: true
+rate_limit_rps: 2
+# 目标公司白名单（对应 orgs-seed.yaml 的 org_id）
+# rss_url 留空表示待补：优先找官方 IR RSS，无则填 ir_url 走 scrape 适配器
+companies:
+  - org_id: regeneron
+    ir_url: https://investor.regeneron.com/news-releases
+    rss_url: null
+  - org_id: sanofi
+    ir_url: https://www.sanofi.com/en/media-room/press-releases
+    rss_url: null
+  - org_id: keymed
+    ir_url: null            # 待补官方 IR
+    rss_url: null
+  - org_id: connect_biopharma
+    ir_url: https://ir.connectbiopharma.com/news-releases
+    rss_url: null
+  - org_id: qyuns
+    ir_url: null            # 待补
+    rss_url: null
+  - org_id: akeso
+    ir_url: null            # 待补
+    rss_url: null
+  - org_id: sunshine_guojian
+    ir_url: null            # 待补
+    rss_url: null
+notes: >-
+  MVP 只做白名单内公司；IR/RSS URL 需在 PLAN-001d 逐个核实填入。
+  公司稿为 evidence_level=C，deal/临床读出线索须交叉验证后才作关键结论。

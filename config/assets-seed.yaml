@@ -1,0 +1,61 @@
+# 药物/资产种子（IL-4Rα 拮抗剂）
+# 用途：packages/entity_resolution/asset_resolver.py 建立 研发代码↔通用名↔公司↔靶点↔机制
+# 说明：这是采集起点的已知资产清单；采集后由 Event/Evidence 补全与校正。
+#       confidence 标注种子本身可信度（high=已获批/公开充分；medium=公开在研；待核=需人工确认）。
+target: IL-4Rα
+
+assets:
+  - asset_id: AST_dupilumab
+    inn: dupilumab
+    brand: Dupixent
+    codes: [REGN668, SAR231893]
+    organizations: [regeneron, sanofi]
+    modality: monoclonal antibody
+    mechanism: IL-4Rα antagonist (blocks IL-4/IL-13 signaling)
+    indications: [atopic_dermatitis, csu, prurigo_nodularis]
+    confidence: high
+
+  - asset_id: AST_stapokibart
+    inn: stapokibart
+    codes: [CM310]
+    organizations: [keymed]
+    modality: monoclonal antibody
+    mechanism: IL-4Rα antagonist
+    indications: [atopic_dermatitis]
+    confidence: high
+
+  - asset_id: AST_rademikibart
+    inn: rademikibart
+    codes: [CBP-201]
+    organizations: [connect_biopharma]
+    modality: monoclonal antibody
+    mechanism: IL-4Rα antagonist
+    indications: [atopic_dermatitis]
+    confidence: medium
+
+  - asset_id: AST_qx005n
+    inn: null
+    codes: [QX005N]
+    organizations: [qyuns]
+    modality: monoclonal antibody
+    mechanism: IL-4Rα antagonist
+    indications: [atopic_dermatitis, csu, prurigo_nodularis]
+    confidence: medium
+
+  - asset_id: AST_ak120
+    inn: null
+    codes: [AK120]
+    organizations: [akeso]
+    modality: monoclonal antibody
+    mechanism: IL-4Rα antagonist
+    indications: [atopic_dermatitis]
+    confidence: medium
+
+  - asset_id: AST_ssgj611
+    inn: null
+    codes: [SSGJ-611, "611"]
+    organizations: [sunshine_guojian]
+    modality: monoclonal antibody
+    mechanism: IL-4Rα antagonist
+    indications: [atopic_dermatitis]
+    confidence: medium

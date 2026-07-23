@@ -1,0 +1,44 @@
+# 公司/机构种子
+# 用途：packages/entity_resolution/org_normalizer.py 公司名归一（含缩写与中英文别名）
+organizations:
+  - org_id: regeneron
+    canonical_name: Regeneron Pharmaceuticals
+    name_zh: 再生元
+    aliases: [Regeneron, REGN]
+    country: US
+
+  - org_id: sanofi
+    canonical_name: Sanofi
+    name_zh: 赛诺菲
+    aliases: [SNY, Sanofi-Aventis]
+    country: FR
+
+  - org_id: keymed
+    canonical_name: Keymed Biosciences
+    name_zh: 康诺亚
+    aliases: [Keymed, 康诺亚生物]
+    country: CN
+
+  - org_id: connect_biopharma
+    canonical_name: Connect Biopharma
+    name_zh: 联邦生物 / Connect
+    aliases: [Connect, CNTB]
+    country: CN/US
+
+  - org_id: qyuns
+    canonical_name: Qyuns Therapeutics
+    name_zh: 荃信生物
+    aliases: [Qyuns, 荃信]
+    country: CN
+
+  - org_id: akeso
+    canonical_name: Akeso
+    name_zh: 康方生物
+    aliases: [Akeso Biopharma, 康方]
+    country: CN
+
+  - org_id: sunshine_guojian
+    canonical_name: Sunshine Guojian Pharmaceutical
+    name_zh: 三生国健
+    aliases: [3SBio Guojian, 三生]
+    country: CN

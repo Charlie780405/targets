@@ -1,0 +1,16 @@
+indication_id: IND_AD
+code: atopic_dermatitis
+canonical_name: 特应性皮炎
+name_en: Atopic Dermatitis
+aliases:
+  - AD
+  - atopic eczema
+  - eczema
+mesh_id: D003876          # Dermatit, Atopic
+therapeutic_area: 免疫炎症 / 皮肤
+key_endpoints_en:         # 供证据片段识别，保留英文原文
+  - EASI-75
+  - EASI-90
+  - IGA 0/1
+  - Peak Pruritus NRS
+notes: dupilumab 首个获批适应症；同类竞争最密集。

@@ -1,0 +1,41 @@
+[project]
+name = "target-intelligence"
+version = "0.1.0"
+description = "靶点情报引擎 — 以「事件」为核心的自免靶点情报采集、研判与周报系统"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27",
+    "feedparser>=6.0",
+    "selectolax>=0.3",
+    "pydantic>=2.7",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "apscheduler>=3.10",
+    "jinja2>=3.1",
+    "python-dotenv>=1.0",
+    "structlog>=24.1",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1", "pgvector>=0.2"]
+browser = ["playwright>=1.44"]
+llm = ["openai>=1.30"]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "vcrpy>=6.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true

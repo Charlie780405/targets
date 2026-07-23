@@ -1,0 +1,15 @@
+source_id: pubmed
+source_name: PubMed (NCBI E-utilities)
+kind: api
+evidence_level: B
+base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+enabled: true
+rate_limit_rps: 3          # 配置 NCBI_API_KEY 后可提升
+# 检索式由 packages/source_adapters/pubmed/query_builder.py 按靶点别名+适应症拼装
+query_terms_from:
+  - config/targets/il4ra.yaml
+  - config/indications/*.yaml
+supplementary_sources:
+  - crossref                # DOI / 在线发表时间
+  - europepmc               # 补充全文/引用
+notes: esearch→efetch 分步；去重键 DOI 优先，退化 PMID+标题归一；标记撤稿/勘误。

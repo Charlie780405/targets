@@ -1,0 +1,18 @@
+source_id: clinicaltrials
+source_name: ClinicalTrials.gov
+kind: api                 # api | rss | scrape | browser
+evidence_level: A
+base_url: https://clinicaltrials.gov/api/v2
+enabled: true
+rate_limit_rps: 3
+# 增量采集与版本快照 diff 的监测字段（对应 PLAN-001b）
+watch_fields:
+  - OverallStatus
+  - EnrollmentCount
+  - PrimaryCompletionDate
+  - StudyCompletionDate
+  - OutcomeMeasures
+  - ResultsPosted
+  - Sponsor
+  - Locations
+notes: 官方 API v2，支持增量与版本快照比较；MVP 首个实现的源。

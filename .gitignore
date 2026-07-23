@@ -1,0 +1,41 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# --- 环境与密钥（绝不入库）---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# --- 运行时数据 / 原始抓取 / 日志（本地或对象存储，不入库）---
+data/raw/**
+data/logs/**
+!data/raw/.gitkeep
+!data/logs/.gitkeep
+*.sqlite
+*.duckdb
+*.db
+
+# --- Obsidian Vault（含敏感研判，走私有仓库单独同步）---
+vault/
+Target-Intelligence/
+
+# --- 测试录制的真实响应（VCR cassettes 若含敏感数据）---
+# tests/cassettes/  # 视需要开启
+
+# --- 编辑器 ---
+.DS_Store
+.idea/
+.vscode/

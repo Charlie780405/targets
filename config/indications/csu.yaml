@@ -1,0 +1,17 @@
+indication_id: IND_CSU
+code: csu
+canonical_name: 慢性自发性荨麻疹
+name_en: Chronic Spontaneous Urticaria
+aliases:
+  - CSU
+  - chronic urticaria
+  - CIU                    # chronic idiopathic urticaria（旧称）
+  - chronic idiopathic urticaria
+mesh_id: D014581           # Urticaria（CSU 无独立 MeSH，检索式在 query_builder 细化）
+therapeutic_area: 免疫炎症 / 皮肤
+key_endpoints_en:
+  - UAS7
+  - ISS7
+  - HSS7
+  - UCT
+notes: 与既往 CSU 调研衔接；BTK/KIT/IgE 等为主要竞争靶点，需交叉关注。

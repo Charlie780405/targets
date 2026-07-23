@@ -1,0 +1,14 @@
+indication_id: IND_PN
+code: prurigo_nodularis
+canonical_name: 结节性痒疹
+name_en: Prurigo Nodularis
+aliases:
+  - PN
+  - nodular prurigo
+mesh_id: D011536           # Prurigo（结节性痒疹为其下亚型）
+therapeutic_area: 免疫炎症 / 皮肤
+key_endpoints_en:
+  - WI-NRS
+  - PN-IGA
+  - IGA
+notes: dupilumab 已获批适应症之一；瘙痒终点为核心。
