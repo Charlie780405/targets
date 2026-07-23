@@ -1,0 +1,61 @@
+# 评分权重与 significance 规则 SSOT — PLAN-001e
+# 三分数分列存储：significance / confidence / novelty（禁止合并为单一分数）
+
+weights:
+  source_reliability: 0.25
+  medical_importance: 0.30
+  novelty: 0.20
+  target_relevance: 0.15
+  time_sensitivity: 0.10
+
+# 医学重要性（significance_score 主输入）— 按 event_type + phase/关键词
+significance_rules:
+  clinical_result:
+    phase_3: 0.95
+    phase_2_3: 0.85
+    phase_2: 0.75
+    phase_1: 0.55
+    default: 0.60
+  regulatory: 0.90
+  deal: 0.80
+  congress: 0.70
+  publication: 0.55
+  trial_change: 0.45
+
+# 标题关键词加成（叠加在 base 之上，上限 1.0）
+significance_keyword_boosts:
+  - pattern: "(?i)(phase\\s*iii|iii\\s*期|主要终点|primary endpoint|topline|top-line)"
+    boost: 0.15
+  - pattern: "(?i)(breakthrough|突破性|approval|批准|safety signal|安全信号)"
+    boost: 0.20
+  - pattern: "(?i)(discontinu|终止开发|failed|未达到|did not meet)"
+    boost: 0.10
+
+# 跨源合并
+merge:
+  date_window_days: 7
+
+# 新颖性
+novelty:
+  lookback_days: 30
+  duplicate_penalty: 0.30
+  fresh_score: 1.0
+
+# 时间敏感性（距 event_date 衰减）
+time_sensitivity:
+  full_score_days: 3
+  decay_days: 14
+  min_score: 0.30
+
+# 置信度：多源交叉验证加成
+confidence:
+  multi_source_boost_per_evidence: 0.05
+  multi_source_cap: 0.95
+  single_source_cap: 0.85
+
+# 标签阈值
+labels:
+  significance_high: 0.80
+  significance_medium: 0.55
+  confidence_high: 0.80
+  confidence_medium: 0.60

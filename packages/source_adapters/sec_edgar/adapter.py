@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -87,7 +88,14 @@ class SecEdgarAdapter:
         return data if isinstance(data, dict) else {}
 
     def fetch_filings_for_org(self, org_id: str, cik: str, *, limit: int = 20) -> list[FetchedDocument]:
-        data = self.fetch_submissions(cik)
+        try:
+            data = self.fetch_submissions(cik)
+        except httpx.HTTPError as exc:
+            print(
+                f"WARN sec_edgar: skip {org_id} CIK {cik}: {exc}",
+                file=sys.stderr,
+            )
+            return []
         recent = data.get("filings", {}).get("recent") or {}
         forms = recent.get("form") or []
         dates = recent.get("filingDate") or []
