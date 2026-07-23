@@ -10,7 +10,7 @@
 | 001c | [PLAN-001c-publication-collection.md](PLAN-001c-publication-collection.md) | 第3周 | PubMed 适配器、检索式、PMID/DOI 去重、摘要级抽取、勘误/撤稿 | 已合并 `af900e5` |
 | 001d | [PLAN-001d-company-finance.md](PLAN-001d-company-finance.md) | 第4周 | 公司 IR/RSS 适配器、SEC/交易所公告、实体匹配、来源可靠性评分 | 已合并 `dde87f4` |
 | 001e | [PLAN-001e-intelligence-scoring.md](PLAN-001e-intelligence-scoring.md) | 第5周 | 事件分类、三分数评分、跨来源合并、LLM 结构化抽取、周报生成 | 已合并 `5a5bf98` |
-| 001f | [PLAN-001f-obsidian-ops.md](PLAN-001f-obsidian-ops.md) | 第6周 | Vault 模板、Markdown 发布器、Git 同步、定时任务、告警、覆盖率评估 | 进行中 |
+| 001f | [PLAN-001f-obsidian-ops.md](PLAN-001f-obsidian-ops.md) | 第6周 | Vault 模板、Markdown 发布器、Git 同步、定时任务、告警、覆盖率评估 | 已合并 `1ca8285` |
 
 ## 使用方式
 
