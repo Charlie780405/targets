@@ -26,6 +26,23 @@ def test_company_ir_parse_fixture_rss(tmp_path: Path) -> None:
     assert classify_company_release(docs[1].title, docs[1].payload.get("summary")) == EventType.DEAL
 
 
+def test_company_ir_fetch_rss_timeout_returns_empty() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out", request=request)
+
+    transport = httpx.MockTransport(handler)
+    client = httpx.Client(transport=transport, timeout=1.0)
+    adapter = CompanyIRAdapter(
+        config={"companies": [{"org_id": "regeneron", "rss_url": "https://example.com/rss"}]},
+        client=client,
+    )
+    try:
+        docs = adapter.fetch_rss_url("https://example.com/rss", "regeneron")
+        assert docs == []
+    finally:
+        adapter.close()
+
+
 def test_sec_edgar_mock_submissions(tmp_path: Path) -> None:
     payload = json.loads((_FIXTURES / "sec_edgar" / "regeneron_submissions.json").read_text())
 

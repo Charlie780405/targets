@@ -5,6 +5,7 @@ from __future__ import annotations
 import calendar
 import json
 import os
+import sys
 import time
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
@@ -100,8 +101,15 @@ class CompanyIRAdapter:
 
     def fetch_rss_url(self, rss_url: str, org_id: str) -> list[FetchedDocument]:
         self._throttle()
-        response = self._client.get(rss_url)
-        response.raise_for_status()
+        try:
+            response = self._client.get(rss_url)
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            print(
+                f"WARN company_ir: skip {org_id} RSS ({rss_url}): {exc}",
+                file=sys.stderr,
+            )
+            return []
         return self._parse_feed(response.text, org_id, rss_url=rss_url)
 
     def _parse_feed(
@@ -151,7 +159,7 @@ class CompanyIRAdapter:
         del since
         documents: list[FetchedDocument] = []
         for company in self._config.get("companies", []):
-            org_id = company["org_id"]
+            org_id = str(company["org_id"])
             rss_url = company.get("rss_url")
             if rss_url:
                 documents.extend(self.fetch_rss_url(str(rss_url), org_id))
