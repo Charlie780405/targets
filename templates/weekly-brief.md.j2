@@ -1,0 +1,120 @@
+# {{ report.title }}
+
+> 周期：{{ report.period_start }} — {{ report.period_end }}
+> 靶点：{{ report.target }}
+> 生成时间：{{ report.generated_at }}
+
+---
+
+## 1. 本周关键结论
+
+{% if key_conclusions %}
+{% for item in key_conclusions %}
+### {{ loop.index }}. {{ item.title }}
+
+- **【结论】** {{ item.conclusion }}
+- **【依据】** {{ item.evidence_snippet or "—" }}
+- **【来源】** {% for src in item.sources %}[{{ src.name }}]({{ src.url }}){% if not loop.last %}；{% endif %}{% endfor %}
+- **【置信】** {{ item.confidence_label or "—" }}
+- **【影响】** {{ item.impact or "—" }}
+
+{% endfor %}
+{% else %}
+_本周暂无已审核（approved）关键结论。_
+{% endif %}
+
+---
+
+## 2. 靶点级动态
+
+{% if target_dynamics %}
+{% for item in target_dynamics %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无。_
+{% endif %}
+
+---
+
+## 3. 药物与公司动态
+
+{% if asset_company_dynamics %}
+{% for item in asset_company_dynamics %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无。_
+{% endif %}
+
+---
+
+## 4. 临床试验变化
+
+{% if trial_changes %}
+{% for item in trial_changes %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无。_
+{% endif %}
+
+---
+
+## 5. 论文与大会数据
+
+{% if publications_congress %}
+{% for item in publications_congress %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无。_
+{% endif %}
+
+---
+
+## 6. 竞争格局变化
+
+{% if competitive_landscape %}
+{% for item in competitive_landscape %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无。_
+{% endif %}
+
+---
+
+## 7. 对自免适应症开发的影响
+
+{% if indication_impact %}
+{% for item in indication_impact %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无。_
+{% endif %}
+
+---
+
+## 8. 下周观察点
+
+{% if watch_next_week %}
+{% for item in watch_next_week %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无。_
+{% endif %}
+
+---
+
+## 9. 证据与不确定性
+
+{% if evidence_uncertainties %}
+{% for item in evidence_uncertainties %}
+- {{ item }}
+{% endfor %}
+{% else %}
+_暂无待核实项。_
+{% endif %}
