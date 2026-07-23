@@ -1,0 +1,20 @@
+interactions:
+- request:
+    method: GET
+    uri: https://clinicaltrials.gov/api/v2/studies?query.term=IL-4R%CE%B1+OR+IL4R+OR+IL-4R+OR+IL-4+receptor+alpha+OR+IL-4Ra+OR+IL4RA+OR+CD124+OR+interleukin-4+receptor+subunit+alpha+OR+interleukin+4+receptor+alpha&pageSize=100&format=json
+    body: null
+    headers:
+      User-Agent:
+      - target-intelligence/0.1
+      host:
+      - clinicaltrials.gov
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Content-Type:
+      - application/json
+    body:
+      string: "{\"studies\":[{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT00000001\",\"briefTitle\":\"A Study of IL-4Rα Antagonist in Atopic Dermatitis\"},\"statusModule\":{\"overallStatus\":\"RECRUITING\",\"primaryCompletionDateStruct\":{\"date\":\"2026-12\",\"type\":\"ESTIMATED\"},\"completionDateStruct\":{\"date\":\"2027-06\",\"type\":\"ESTIMATED\"}},\"designModule\":{\"phases\":[\"PHASE2\"],\"enrollmentInfo\":{\"count\":100,\"type\":\"ESTIMATED\"}},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"EASI-75 at Week 16\"}]},\"sponsorCollaboratorsModule\":{\"leadSponsor\":{\"name\":\"Example Pharma Inc.\"}},\"contactsLocationsModule\":{\"locations\":[{\"city\":\"Boston\",\"state\":\"MA\",\"country\":\"United States\"}]}},\"hasResults\":false}]}"
+version: 1
