@@ -1,0 +1,11 @@
+[Unit]
+Description=Target Intelligence — 每日采集 timer
+Requires=target-intel-collect.service
+
+[Timer]
+OnCalendar=*-*-* 06:00:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

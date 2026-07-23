@@ -1,0 +1,11 @@
+[Unit]
+Description=Target Intelligence — 每周一 07:00 周报 timer
+Requires=target-intel-weekly.service
+
+[Timer]
+OnCalendar=Mon *-*-* 07:00:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

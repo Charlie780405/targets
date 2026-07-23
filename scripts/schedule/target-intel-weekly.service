@@ -1,0 +1,17 @@
+[Unit]
+Description=Target Intelligence — 周报生成与 Vault 发布
+After=network-online.target target-intel-collect.service
+
+[Service]
+Type=oneshot
+User=target-intel
+WorkingDirectory=/opt/target-intelligence
+Environment=DATABASE_URL=sqlite:////opt/target-intelligence/data/target_intel.sqlite
+Environment=VAULT_PATH=/opt/target-intelligence/vault
+EnvironmentFile=-/opt/target-intelligence/.env
+ExecStart=/usr/bin/python3 -m apps.reporter.publish --vault /opt/target-intelligence/vault
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
