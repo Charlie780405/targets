@@ -1,9 +1,9 @@
 [Unit]
-Description=Target Intelligence — 每周一 07:00 周报 timer
+Description=Target Intelligence — 每周周报 timer（北京时间周一 07:00 = UTC 周日 23:00）
 Requires=target-intel-weekly.service
 
 [Timer]
-OnCalendar=Mon *-*-* 07:00:00
+OnCalendar=Sun *-*-* 23:00:00
 Persistent=true
 RandomizedDelaySec=600
 

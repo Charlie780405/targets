@@ -1,0 +1,20 @@
+# targets.qyunsgen.com — 靶点情报引擎 /health 公网反代
+# 合并到 qyunsgen/config/Caddyfile-production-public 后执行：
+#   docker exec qyunsgen-caddy caddy reload --config /etc/caddy/Caddyfile
+# 前置：Targets docker compose health 监听 127.0.0.1:8080
+
+https://targets.qyunsgen.com {
+    tls /etc/caddy/certs/qyunsgen-origin.pem /etc/caddy/certs/qyunsgen-origin.key
+
+    handle {
+        reverse_proxy 127.0.0.1:8080 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {host}
+        }
+        header {
+            Strict-Transport-Security max-age=31536000; includeSubDomains
+            X-Content-Type-Options nosniff
+        }
+    }
+}

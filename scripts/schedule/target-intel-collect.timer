@@ -1,9 +1,10 @@
 [Unit]
-Description=Target Intelligence — 每日采集 timer
+Description=Target Intelligence — 每日采集 timer（北京时间 06:00 = UTC 22:00）
 Requires=target-intel-collect.service
 
 [Timer]
-OnCalendar=*-*-* 06:00:00
+# systemd 默认 UTC；22:00 UTC = 次日北京时间 06:00
+OnCalendar=*-*-* 22:00:00
 Persistent=true
 RandomizedDelaySec=300
 
