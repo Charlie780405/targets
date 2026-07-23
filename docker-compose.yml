@@ -1,0 +1,37 @@
+# Target Intelligence — Vultr 混合架构部署（采集 + 健康检查）
+# 用法: docker compose up -d
+
+services:
+  health:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      DATABASE_URL: sqlite:////app/data/target_intel.sqlite
+      SERVICE_NAME: target-intelligence
+    command: >
+      sh -c "pip install -q -e '.[server]' &&
+      uvicorn apps.health:create_app --factory --host 0.0.0.0 --port 8080"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # 可选：APScheduler 常驻采集（替代 systemd timer）
+  scheduler:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./vault:/app/vault
+    environment:
+      DATABASE_URL: sqlite:////app/data/target_intel.sqlite
+      VAULT_PATH: /app/vault
+    command: >
+      sh -c "pip install -q -e . &&
+      python3 -m apps.collector.scheduler"
+    profiles:
+      - scheduler
+    restart: unless-stopped

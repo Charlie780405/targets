@@ -1,0 +1,17 @@
+[Unit]
+Description=Target Intelligence — 多源采集（CT.gov / PubMed / 公司）
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=target-intel
+WorkingDirectory=/opt/target-intelligence
+Environment=DATABASE_URL=sqlite:////opt/target-intelligence/data/target_intel.sqlite
+ExecStart=/usr/bin/python3 -m apps.collector.run_clinicaltrials --init-db
+ExecStart=/usr/bin/python3 -m apps.collector.run_pubmed
+ExecStart=/usr/bin/python3 -m apps.collector.run_companies
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
