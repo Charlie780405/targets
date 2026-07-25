@@ -17,6 +17,16 @@ from packages.source_adapters.pubmed.parser import parse_pubmed_article
 from packages.source_adapters.pubmed.query_builder import build_pubmed_query
 
 _ROOT = Path(__file__).resolve().parents[3]
+_FILTER_CONFIG_PATH = _ROOT / "config" / "publication_filter.yaml"
+
+
+def _load_filter_config() -> dict[str, Any]:
+    if not _FILTER_CONFIG_PATH.is_file():
+        return {}
+    raw = yaml.safe_load(_FILTER_CONFIG_PATH.read_text(encoding="utf-8"))
+    return raw if isinstance(raw, dict) else {}
+
+
 _DEFAULT_CONFIG = _ROOT / "config" / "sources" / "pubmed.yaml"
 _DEFAULT_RAW_DIR = _ROOT / "data" / "raw" / "pubmed"
 _EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
@@ -123,8 +133,11 @@ class PubMedAdapter:
 
     def fetch(self, since: datetime | None = None) -> list[FetchedDocument]:
         del since
-        term = build_pubmed_query()
-        pmids = self.esearch(term, retmax=100)
+        filt = _load_filter_config()
+        require_title = bool(filt.get("require_target_in_title", True))
+        retmax = int(filt.get("esearch_retmax", 50))
+        term = build_pubmed_query(require_target_in_title=require_title)
+        pmids = self.esearch(term, retmax=retmax)
         if not pmids:
             return []
 

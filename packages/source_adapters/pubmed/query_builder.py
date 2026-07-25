@@ -36,8 +36,10 @@ def _load_terms(directory: Path, *, name_keys: tuple[str, ...]) -> list[str]:
 def build_pubmed_query(
     targets_dir: Path | None = None,
     indications_dir: Path | None = None,
+    *,
+    require_target_in_title: bool = True,
 ) -> str:
-    """(靶点 OR ...) AND (适应症 OR ...)，供 esearch term 参数使用。"""
+    """(靶点 OR ...) AND (适应症 OR ...)。默认靶点须出现在 Title 以降低噪音。"""
     target_terms = _load_terms(
         targets_dir or _TARGETS_DIR,
         name_keys=("canonical_name", "gene"),
@@ -46,6 +48,9 @@ def build_pubmed_query(
         indications_dir or _INDICATIONS_DIR,
         name_keys=("canonical_name", "name_en"),
     )
-    target_clause = " OR ".join(f'"{t}"[Title/Abstract]' for t in target_terms)
+    if require_target_in_title:
+        target_clause = " OR ".join(f'"{t}"[Title]' for t in target_terms)
+    else:
+        target_clause = " OR ".join(f'"{t}"[Title/Abstract]' for t in target_terms)
     indication_clause = " OR ".join(f'"{t}"[Title/Abstract]' for t in indication_terms)
     return f"({target_clause}) AND ({indication_clause})"

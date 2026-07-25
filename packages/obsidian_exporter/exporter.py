@@ -7,10 +7,15 @@ from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
+from sqlalchemy.orm import Session
 
 from apps.processor.scoring import significance_label
 from packages.domain.enums import EventType, MedicalReviewStatus
 from packages.domain.models import Event, Evidence, Report
+from packages.obsidian_exporter.publication_context import (
+    PublicationExportContext,
+    resolve_publication_export_context,
+)
 from packages.obsidian_exporter.vault_layout import (
     ensure_vault_layout,
     event_note_path,
@@ -36,6 +41,7 @@ def build_event_frontmatter(
     event: Event,
     evidences: list[Evidence],
     labels: EntityLabels | None = None,
+    publication: PublicationExportContext | None = None,
 ) -> dict[str, Any]:
     lbl = labels or EntityLabels()
     sources = sorted({ev.source_name for ev in evidences})
@@ -60,6 +66,17 @@ def build_event_frontmatter(
         fm["indication"] = lbl.indication
     if lbl.organization:
         fm["organization"] = lbl.organization
+    if publication:
+        if publication.pmid:
+            fm["pmid"] = publication.pmid
+        if publication.doi:
+            fm["doi"] = publication.doi
+        if publication.study_type:
+            fm["study_type"] = publication.study_type
+        if publication.published_at:
+            fm["published_at"] = publication.published_at
+        if publication.retracted:
+            fm["retracted"] = True
     return fm
 
 
@@ -83,32 +100,78 @@ def render_markdown_with_frontmatter(frontmatter: dict[str, Any], body: str) -> 
     return f"---\n{yaml_block}\n---\n\n{body_stripped}\n"
 
 
+def _build_publication_body(
+    event: Event,
+    evidences: list[Evidence],
+    publication: PublicationExportContext | None,
+) -> list[str]:
+    lines = [f"# {event.title}", ""]
+    if publication and publication.retracted:
+        lines.extend(["> **RETRACTED**", ""])
+
+    lines.extend(["## 机器标签", "", event.summary or "_无_", ""])
+
+    if publication and publication.analysis_zh:
+        lines.extend(["## 研判草稿（待审核）", "", publication.analysis_zh, ""])
+
+    if publication and publication.abstract:
+        lines.extend(["## 摘要（原文）", "", publication.abstract, ""])
+    elif evidences and evidences[0].evidence_snippet:
+        lines.extend(["## 证据片段", "", evidences[0].evidence_snippet, ""])
+
+    lines.extend(["## 链接", ""])
+    if publication and publication.pubmed_url:
+        lines.append(f"- [PubMed]({publication.pubmed_url})")
+    if publication and publication.doi_url:
+        lines.append(f"- [DOI]({publication.doi_url})")
+    for ev in evidences:
+        if ev.source_url and (not publication or ev.source_url != publication.pubmed_url):
+            lines.append(f"- [{ev.source_name}]({ev.source_url})")
+    if len(lines) == lines.index("## 链接", 0) + 2:
+        lines.append("_无链接_")
+
+    if publication and publication.matched_targets:
+        lines.extend(["", "## 匹配靶点", "", ", ".join(publication.matched_targets)])
+
+    return lines
+
+
 def export_event_note(
     event: Event,
     evidences: list[Evidence],
     vault_root: Path,
     *,
     labels: EntityLabels | None = None,
+    session: Session | None = None,
 ) -> Path:
     ensure_vault_layout(vault_root)
-    frontmatter = build_event_frontmatter(event, evidences, labels)
-    snippets = [ev.evidence_snippet for ev in evidences if ev.evidence_snippet]
-    body_lines = [
-        f"# {event.title}",
-        "",
-        event.summary or "_无摘要_",
-        "",
-        "## 证据片段",
-        "",
-    ]
-    if snippets:
-        for i, snippet in enumerate(snippets, 1):
-            body_lines.append(f"{i}. {snippet}")
+    publication: PublicationExportContext | None = None
+    if session is not None and event.event_type == EventType.PUBLICATION:
+        publication = resolve_publication_export_context(session, event, evidences)
+
+    frontmatter = build_event_frontmatter(event, evidences, labels, publication)
+
+    if event.event_type == EventType.PUBLICATION:
+        body_lines = _build_publication_body(event, evidences, publication)
     else:
-        body_lines.append("_无证据片段_")
-    body_lines.extend(["", "## 来源链接", ""])
-    for ev in evidences:
-        body_lines.append(f"- [{ev.source_name}]({ev.source_url})")
+        snippets = [ev.evidence_snippet for ev in evidences if ev.evidence_snippet]
+        body_lines = [
+            f"# {event.title}",
+            "",
+            event.summary or "_无摘要_",
+            "",
+            "## 证据片段",
+            "",
+        ]
+        if snippets:
+            for i, snippet in enumerate(snippets, 1):
+                body_lines.append(f"{i}. {snippet}")
+        else:
+            body_lines.append("_无证据片段_")
+        body_lines.extend(["", "## 来源链接", ""])
+        for ev in evidences:
+            body_lines.append(f"- [{ev.source_name}]({ev.source_url})")
+
     content = render_markdown_with_frontmatter(frontmatter, "\n".join(body_lines))
     dest = event_note_path(vault_root, event.id, event.event_type)
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -129,6 +192,30 @@ def export_report_note(
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(content, encoding="utf-8")
     return dest
+
+
+def export_publication_template(vault_root: Path) -> Path:
+    ensure_vault_layout(vault_root)
+    template = vault_root / "99-Templates" / "publication-event.md"
+    if not template.exists():
+        template.write_text(
+            "---\n"
+            "event_id: EVT-YYYY-NNNNN\n"
+            "event_type: publication\n"
+            "review_status: pending\n"
+            "pmid:\n"
+            "doi:\n"
+            "---\n\n"
+            "# 标题\n\n"
+            "## 机器标签\n\n"
+            "## 研判草稿（待审核）\n\n"
+            "## 摘要（原文）\n\n"
+            "## 链接\n\n"
+            "- [PubMed](https://pubmed.ncbi.nlm.nih.gov/)\n"
+            "- [DOI](https://doi.org/)\n",
+            encoding="utf-8",
+        )
+    return template
 
 
 def parse_frontmatter(markdown: str) -> dict[str, Any]:

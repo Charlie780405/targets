@@ -1,0 +1,16 @@
+# 文献相关性过滤 SSOT — PLAN-002b
+
+# PubMed 检索：靶点别名必须出现在标题（非仅摘要）
+require_target_in_title: true
+
+# 入库前 relevance 评分 [0,1]；低于 min_relevance 不生成 Event（仍落 Publication 供去重）
+min_relevance_for_event: 0.45
+
+# 低于此分自动标 rejected（若仍生成 Event 的兼容路径，默认不生成 Event）
+auto_reject_below: 0.30
+
+# publish 导出：跳过 rejected；significance 分档门槛 low|medium|high
+export_min_importance: medium
+
+# 单次 esearch 最大返回（降噪）
+esearch_retmax: 50
