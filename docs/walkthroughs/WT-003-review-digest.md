@@ -25,3 +25,9 @@ python3 -m apps.reporter.review_sync --vault ./vault   # Obsidian 改 status 后
 ```
 
 审核通过后查看 `00-Dashboard/已审核文献摘要.md`。
+
+## 纳入教训（Vault 同步）
+
+- **Skill**：`.cursor/skills/target-intel-vault-sync/SKILL.md` — Windows `git pull` / 禁止 `stash -u` / 关 Obsidian 再 pull
+- Vault 仓库须含 `.gitignore`（`.obsidian/`），由 `ensure_vault_gitignore()` 在 publish 时写入
+- 用户手改 `00-Dashboard/*` 会导致 pull 冲突 → 一律 `git restore` 后以服务器为准

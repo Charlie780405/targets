@@ -45,6 +45,15 @@ def ensure_vault_layout(vault_root: Path) -> None:
     """创建 Vault 顶层与子目录（幂等）。"""
     for rel in TOP_LEVEL_DIRS:
         (vault_root / rel).mkdir(parents=True, exist_ok=True)
+    ensure_vault_gitignore(vault_root)
+
+
+def ensure_vault_gitignore(vault_root: Path) -> None:
+    """Vault 仓库 .gitignore — 避免 stash/pull 误碰 Obsidian 本地配置。"""
+    path = vault_root / ".gitignore"
+    content = ".obsidian/\n.trash/\n"
+    if not path.exists() or path.read_text(encoding="utf-8") != content:
+        path.write_text(content, encoding="utf-8")
 
 
 def event_note_path(vault_root: Path, event_id: str, event_type: EventType) -> Path:
