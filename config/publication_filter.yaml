@@ -12,5 +12,11 @@ auto_reject_below: 0.30
 # publish 导出：跳过 rejected；significance 分档门槛 low|medium|high
 export_min_importance: medium
 
+# 发布时 relevance 复验（与 min_relevance_for_event 对齐，可单独调）
+export_min_relevance: 0.45
+
+# publish 时删除 06-Publications 中不满足导出门槛的历史笔记
+prune_vault_excluded: true
+
 # 单次 esearch 最大返回（降噪）
 esearch_retmax: 50

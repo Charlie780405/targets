@@ -4,6 +4,7 @@
 
 ## 执行摘要
 
+- **002b（P0）**：弱相关文献挡在 Vault 外 — 采集不建 Event、publish 不导出、prune 历史 md
 - **002a**：Publication 富导出（PMID/DOI/摘要/链接）+ `review_sync` CLI
 - **002b**：PubMed 标题检索收紧 + relevance 门槛 + publish 导过滤
 - **002c**：文献分析（LLM/规则）+ `run_publication_enrich`

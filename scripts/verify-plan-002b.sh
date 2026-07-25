@@ -8,7 +8,7 @@ assert_file() { [[ -f "$2" ]] && echo "PASS: $1" && pass=$((pass+1)) || { echo "
 
 assert_file "publication_filter.yaml" "config/publication_filter.yaml"
 assert_file "publication_relevance" "apps/processor/publication_relevance.py"
-check "pytest relevance" python3 -m pytest -q tests/test_publication_relevance.py
+check "pytest relevance+prune" python3 -m pytest -q tests/test_publication_relevance.py tests/test_vault_prune.py
 
 total=$((pass+fail))
 echo "verify-plan-002b: $pass/$total"
