@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -56,3 +58,25 @@ def sync_review_status_from_vault(session: Session, vault_root: Path) -> ReviewS
             stats.updated += 1
     session.flush()
     return stats
+
+
+def main() -> None:
+    from packages.domain.database import SessionLocal
+    from packages.domain.env import load_project_env
+
+    load_project_env()
+    parser = argparse.ArgumentParser(description="Sync review_status from Vault to database")
+    parser.add_argument("--vault", type=Path, default=Path(os.getenv("VAULT_PATH", "vault")))
+    args = parser.parse_args()
+
+    session = SessionLocal()
+    try:
+        stats = sync_review_status_from_vault(session, args.vault)
+        session.commit()
+        print(f"review_sync: scanned={stats.scanned} updated={stats.updated} skipped={stats.skipped}")
+    finally:
+        session.close()
+
+
+if __name__ == "__main__":
+    main()

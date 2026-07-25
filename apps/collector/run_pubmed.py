@@ -9,6 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.processor.publication_extract import extract_publication_fields
+from apps.processor.publication_relevance import (
+    min_relevance_for_event,
+    score_publication_relevance,
+)
 from packages.domain.database import SessionLocal, create_db_engine
 from packages.domain.enums import EventType, EvidenceLevel, MedicalReviewStatus
 from packages.domain.models import Event, Evidence, Publication, SourceDocument
@@ -124,6 +128,15 @@ def persist_publication(
     event: Event | None = None
     if is_new:
         extracted = extract_publication_fields(payload)
+        relevance = score_publication_relevance(
+            title=str(publication.title or ""),
+            abstract=publication.abstract,
+            matched_targets=extracted.get("matched_targets", []),
+            study_type=str(extracted.get("study_type", "other")),
+        )
+        if relevance < min_relevance_for_event():
+            return publication, None
+
         summary_parts = [f"study_type={extracted['study_type']}"]
         if extracted["matched_targets"]:
             summary_parts.append(f"targets={','.join(extracted['matched_targets'])}")

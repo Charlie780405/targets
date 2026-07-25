@@ -211,12 +211,30 @@ def save_weekly_report(
     target_id: str = "TGT_001",
     use_llm: bool = True,
 ) -> Report:
-    """生成并落库 Report 记录。"""
+    """生成并落库 Report 记录；同周期同靶点更新而非重复新建。"""
     body = generate_weekly_brief(
         session, period_start, period_end, target_id=target_id, use_llm=use_llm
     )
     target = session.get(Target, target_id)
     target_name = target.canonical_name if target else "IL-4Rα"
+    existing = session.scalar(
+        select(Report)
+        .where(
+            Report.report_type == ReportType.WEEKLY,
+            Report.period_start == period_start,
+            Report.period_end == period_end,
+            Report.target_id == target_id,
+        )
+        .order_by(Report.generated_at.desc())
+        .limit(1)
+    )
+    if existing:
+        existing.body_markdown = body
+        existing.title = f"{target_name} 周报 {period_start.isoformat()}—{period_end.isoformat()}"
+        existing.generated_at = datetime.now(tz=UTC)
+        session.flush()
+        return existing
+
     report = Report(
         id=f"RPT-{uuid.uuid4().hex[:12]}",
         report_type=ReportType.WEEKLY,
