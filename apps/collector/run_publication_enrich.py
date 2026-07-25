@@ -39,19 +39,22 @@ def _resolve_publication(session: Session, event: Event, evidences: list[Evidenc
     return session.scalar(select(Publication).where(Publication.title == event.title).limit(1))
 
 
-def enrich_publication_events(session: Session, *, use_llm: bool = True, limit: int = 50) -> dict[str, int]:
+def enrich_publication_events(
+    session: Session,
+    *,
+    use_llm: bool = True,
+    limit: int = 50,
+    event_ids: set[str] | None = None,
+) -> dict[str, int]:
     stats = {"scanned": 0, "enriched": 0, "skipped": 0}
-    events = list(
-        session.scalars(
-            select(Event)
-            .where(
-                Event.event_type == EventType.PUBLICATION,
-                Event.medical_review_status == MedicalReviewStatus.PENDING,
-            )
-            .order_by(Event.event_date.desc())
-            .limit(limit)
-        ).all()
+    stmt = select(Event).where(
+        Event.event_type == EventType.PUBLICATION,
+        Event.medical_review_status == MedicalReviewStatus.PENDING,
     )
+    if event_ids:
+        stmt = stmt.where(Event.id.in_(event_ids))
+    stmt = stmt.order_by(Event.event_date.desc()).limit(limit)
+    events = list(session.scalars(stmt).all())
     for event in events:
         stats["scanned"] += 1
         evidences = list(session.scalars(select(Evidence).where(Evidence.event_id == event.id)).all())

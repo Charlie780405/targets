@@ -9,63 +9,69 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.processor.metrics import compute_metrics, format_metrics_markdown
-from apps.processor.scoring import significance_label
+from apps.reporter.review_queue import profiled_publication_relevance, select_review_queue_event_ids
 from apps.reporter.weekly import default_week_window
 from packages.domain.enums import EventType, MedicalReviewStatus
-from packages.domain.models import Event
+from packages.domain.models import Event, Evidence
 from packages.obsidian_exporter.vault_layout import ensure_vault_layout
-
-
-def _importance_band(significance: float | None) -> str:
-    score = significance or 0.0
-    label = significance_label(score)
-    return {"高": "high", "中": "medium", "低": "low"}.get(label, "low")
 
 
 def export_pending_review_dashboard(session: Session, vault_root: Path) -> Path:
     ensure_vault_layout(vault_root)
+    queue_ids = select_review_queue_event_ids(session)
     pending = list(
         session.scalars(
             select(Event)
             .where(Event.medical_review_status == MedicalReviewStatus.PENDING)
-            .order_by(Event.significance_score.desc().nullslast(), Event.event_date.desc())
+            .order_by(Event.event_date.desc())
         ).all()
     )
+    pub_rows: list[tuple[Event, float]] = []
+    for event in pending:
+        if event.event_type != EventType.PUBLICATION or event.id not in queue_ids:
+            continue
+        evidences = list(
+            session.scalars(select(Evidence).where(Evidence.event_id == event.id)).all()
+        )
+        rel = profiled_publication_relevance(session, event, evidences)
+        pub_rows.append((event, rel))
+    pub_rows.sort(key=lambda x: (-x[1], x[0].event_date.isoformat()))
+
     start, end = default_week_window()
     metrics = compute_metrics(session, start, end)
     lines = [
         "# 待审队列",
         "",
         f"> 生成时间：{datetime.now(tz=UTC).isoformat(timespec='seconds')}",
+        f"> 文献审核队列 Top **{len(pub_rows)}** 篇（按 IL-4Rα 管线相关度）",
         "",
         "## 指标快照",
         "",
         format_metrics_markdown(metrics),
         "",
-        "## 待审事件（按显著性）",
+        "## 待审文献（Vault 将导出）",
         "",
-        "| event_id | 类型 | 日期 | 显著性 | 标题 |",
-        "| --- | --- | --- | --- | --- |",
+        "| event_id | 相关度 | 日期 | 标题 |",
+        "| --- | --- | --- | --- |",
     ]
-    for event in pending[:100]:
-        et = event.event_type.value if isinstance(event.event_type, EventType) else str(event.event_type)
-        band = _importance_band(event.significance_score)
+    if not pub_rows:
+        lines.append("| — | — | — | _队列为空_ |")
+    for event, rel in pub_rows:
         title = event.title.replace("|", "\\|")[:80]
-        rel_dir = "06-Publications" if event.event_type == EventType.PUBLICATION else "07-Events"
-        link = f"[[{rel_dir}/{event.id}|{event.id}]]"
+        link = f"[{event.id}](06-Publications/{event.id}.md)"
         lines.append(
-            f"| {link} | {et} | {event.event_date.isoformat()} | {band} | {title} |"
+            f"| {link} | {rel:.2f} | {event.event_date.isoformat()} | {title} |"
         )
-    if not pending:
-        lines.append("| — | — | — | — | _暂无待审_ |")
     lines.extend(
         [
             "",
             "## 审核说明",
             "",
-            "1. 打开事件笔记，修改 frontmatter `review_status` 为 `approved` / `rejected` / `needs_info`",
-            "2. 服务器执行：`python3 -m apps.reporter.review_sync --vault ./vault`",
-            "3. 再执行：`python3 -m apps.reporter.publish --vault ./vault`",
+            "1. 打开 `06-Publications/` 中笔记，阅读 **摘要（原文）** 与 **研判草稿**",
+            "2. 修改 frontmatter `review_status`：`approved`（保留并纳入摘要）/ `rejected`（移出 Vault）",
+            "3. 本地保存后：`python3 -m apps.reporter.review_sync --vault ./vault`",
+            "4. 服务器：`python3 -m apps.reporter.publish --vault ./vault --enrich-publications --use-llm`",
+            "5. 已 approved 文献见 `00-Dashboard/已审核文献摘要.md`",
         ]
     )
     dest = vault_root / "00-Dashboard" / "待审队列.md"

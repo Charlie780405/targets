@@ -17,8 +17,12 @@ from apps.processor.publication_relevance import (
     should_prune_vault,
 )
 from apps.processor.target_link import backfill_event_target_ids
+from apps.reporter.approved_digest import export_approved_publications_digest
 from apps.reporter.dashboard import export_pending_review_dashboard
+from apps.reporter.review_queue import select_review_queue_event_ids
+from apps.reporter.score_events import score_all_events
 from apps.reporter.weekly import default_week_window, save_weekly_report
+from packages.domain.enums import EventType, MedicalReviewStatus
 from packages.domain.models import Asset, Event, Evidence, Indication, Organization, Report, Target
 from packages.obsidian_exporter.exporter import (
     EntityLabels,
@@ -38,10 +42,36 @@ class PublishStats:
     vault_pruned: int = 0
 
 
+def should_export_to_vault(
+    session: Session,
+    event: Event,
+    evidences: list[Evidence],
+    *,
+    review_queue_ids: set[str],
+    min_importance: str | None,
+    min_relevance: float,
+) -> bool:
+    """003：publication 走审核队列；approved 必导出；rejected 不导出。"""
+    if event.medical_review_status == MedicalReviewStatus.REJECTED:
+        return False
+    if event.event_type == EventType.PUBLICATION:
+        if event.medical_review_status == MedicalReviewStatus.APPROVED:
+            return True
+        return event.id in review_queue_ids
+    return passes_vault_export_gate(
+        session,
+        event,
+        evidences,
+        min_importance=min_importance,
+        min_relevance=min_relevance,
+    )
+
+
 def prune_vault_publications(
     session: Session,
     vault_root: Path,
     *,
+    review_queue_ids: set[str],
     min_importance: str | None,
     min_relevance: float,
 ) -> int:
@@ -63,10 +93,11 @@ def prune_vault_publications(
             pruned += 1
             continue
         evidences = list(session.scalars(select(Evidence).where(Evidence.event_id == event.id)).all())
-        if not passes_vault_export_gate(
+        if not should_export_to_vault(
             session,
             event,
             evidences,
+            review_queue_ids=review_queue_ids,
             min_importance=min_importance,
             min_relevance=min_relevance,
         ):
@@ -82,8 +113,10 @@ def export_events(
     since_id: str | None = None,
     min_importance: str | None = None,
     min_relevance: float | None = None,
+    review_queue_ids: set[str] | None = None,
 ) -> tuple[int, int]:
     rel_floor = min_relevance if min_relevance is not None else export_min_relevance()
+    queue_ids = review_queue_ids or select_review_queue_event_ids(session)
     stmt = select(Event).order_by(Event.event_date.desc())
     if since_id:
         stmt = stmt.where(Event.id >= since_id)
@@ -92,10 +125,11 @@ def export_events(
     skipped = 0
     for event in events:
         evidences = list(session.scalars(select(Evidence).where(Evidence.event_id == event.id)).all())
-        if not passes_vault_export_gate(
+        if not should_export_to_vault(
             session,
             event,
             evidences,
+            review_queue_ids=queue_ids,
             min_importance=min_importance,
             min_relevance=rel_floor,
         ):
@@ -237,7 +271,9 @@ def publish_vault(
     if enrich_publications:
         from apps.collector.run_publication_enrich import enrich_publication_events
 
-        enrich_publication_events(session, use_llm=use_llm)
+        queue_ids = select_review_queue_event_ids(session)
+        enrich_publication_events(session, use_llm=use_llm, event_ids=queue_ids)
+    score_all_events(session)
     if generate_weekly:
         backfill_event_target_ids(session)
         start, end = default_week_window()
@@ -246,9 +282,11 @@ def publish_vault(
     filt = load_publication_filter_config()
     export_min = min_importance or str(filt.get("export_min_importance") or "medium")
     rel_min = export_min_relevance(filt)
+    queue_ids = select_review_queue_event_ids(session)
     stats.vault_pruned = prune_vault_publications(
         session,
         vault_root,
+        review_queue_ids=queue_ids,
         min_importance=export_min,
         min_relevance=rel_min,
     )
@@ -257,11 +295,13 @@ def publish_vault(
         vault_root,
         min_importance=export_min,
         min_relevance=rel_min,
+        review_queue_ids=queue_ids,
     )
     stats.events_exported = exported
     stats.events_skipped = skipped
     stats.reports_exported = export_reports(session, vault_root)
     export_pending_review_dashboard(session, vault_root)
+    export_approved_publications_digest(session, vault_root, use_llm=use_llm)
     export_publication_template(vault_root)
     stats.git_pushed = git_sync_vault(vault_root, remote=git_remote)
     return stats

@@ -1,0 +1,26 @@
+# 文献审核与管线相关度 SSOT — PLAN-003a
+
+# 审核队列：按 relevance 排序导出前 N 篇待审 publication
+review_queue_size: 10
+
+# 已 approved 的文献始终导出 Vault（不受 significance 门槛限制）
+export_approved_always: true
+
+# 管线优先（叠加在 publication_relevance 基础分上，上限 1.0）
+priority_boosts:
+  - pattern: "(?i)\\bdupilumab\\b|\\btralokinumab\\b|\\blebrikizumab\\b|\\bamlitelimab\\b"
+    boost: 0.22
+  - pattern: "(?i)phase\\s*(iii|3)|randomized|clinical trial|double-blind"
+    boost: 0.15
+  - pattern: "(?i)primary endpoint|topline|efficacy|biomarker"
+    boost: 0.10
+  - pattern: "(?i)atopic dermatitis|chronic spontaneous urticaria|prurigo nodularis"
+    boost: 0.08
+
+# 降权：标题/摘要沾边但非管线核心
+penalty_patterns:
+  - pattern: "(?i)allergen immunotherapy"
+    unless: "(?i)dupilumab|IL-4R|biologic"
+    penalty: 0.28
+  - pattern: "(?i)\\bvitiligo\\b|\\bdemodex\\b|\\bccr4\\b"
+    penalty: 0.15
