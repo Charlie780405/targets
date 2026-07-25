@@ -133,6 +133,9 @@ def run_collect(*, dry_run: bool = False) -> dict[str, int]:
 
 
 def main() -> None:
+    from packages.domain.env import load_project_env
+
+    load_project_env()
     parser = argparse.ArgumentParser(description="Collect ClinicalTrials.gov studies")
     parser.add_argument("--dry-run", action="store_true", help="Fetch only, do not write DB")
     parser.add_argument("--init-db", action="store_true", help="Create tables before collect")

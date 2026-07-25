@@ -143,6 +143,9 @@ def run_collect(*, dry_run: bool = False) -> dict[str, int]:
 
 
 def main() -> None:
+    from packages.domain.env import load_project_env
+
+    load_project_env()
     parser = argparse.ArgumentParser(description="Collect company IR and SEC filings")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--init-db", action="store_true")

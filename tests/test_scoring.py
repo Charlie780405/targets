@@ -81,5 +81,11 @@ def test_novelty_duplicate_penalty() -> None:
     assert dup.novelty_score < fresh.novelty_score
 
 
+def test_publication_scalar_significance_rule() -> None:
+    event = _event(event_type=EventType.PUBLICATION, title="IL-4Rα review article")
+    sig = compute_significance(event)
+    assert sig == 0.55
+
+
 def test_confidence_label_pending() -> None:
     assert confidence_label(0.50) == "低（待核实）"

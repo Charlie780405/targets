@@ -4,7 +4,7 @@ kind: api
 evidence_level: B
 base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
 enabled: true
-rate_limit_rps: 3          # 配置 NCBI_API_KEY 后可提升
+rate_limit_rps: 5          # 配置 NCBI_API_KEY 后可提升
 # 检索式由 packages/source_adapters/pubmed/query_builder.py 按靶点别名+适应症拼装
 query_terms_from:
   - config/targets/il4ra.yaml

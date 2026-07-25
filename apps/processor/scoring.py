@@ -76,8 +76,11 @@ def compute_significance(event: Event, config: dict[str, Any] | None = None) -> 
     rules = cfg["significance_rules"]
     event_key = event.event_type.value if isinstance(event.event_type, EventType) else str(event.event_type)
     type_rules = rules.get(event_key, {})
-    phase_key = _phase_key(event.phase)
-    base = float(type_rules.get(phase_key, type_rules.get("default", 0.50)))
+    if isinstance(type_rules, (int, float)):
+        base = float(type_rules)
+    else:
+        phase_key = _phase_key(event.phase)
+        base = float(type_rules.get(phase_key, type_rules.get("default", 0.50)))
 
     text = f"{event.title} {event.summary or ''}"
     for item in cfg.get("significance_keyword_boosts", []):

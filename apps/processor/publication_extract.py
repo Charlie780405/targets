@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from apps.processor.target_link import resolve_target_id_from_matches
 from packages.entity_resolution.target_dictionary import TargetDictionary
 from packages.source_adapters.pubmed.parser import infer_study_type
 
@@ -26,9 +27,11 @@ def extract_publication_fields(
                 matched_targets.append(entry.canonical_name)
                 break
 
+    matched = sorted(set(matched_targets))
     return {
         "study_type": infer_study_type(title, str(abstract) if abstract else None),
-        "matched_targets": sorted(set(matched_targets)),
+        "matched_targets": matched,
+        "target_id": resolve_target_id_from_matches(matched, target_dictionary=dictionary),
         "retracted": bool(record.get("retracted")),
         "has_abstract": bool(abstract),
     }

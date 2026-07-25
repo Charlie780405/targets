@@ -10,6 +10,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from apps.processor.target_link import backfill_event_target_ids
 from apps.reporter.weekly import default_week_window, save_weekly_report
 from packages.domain.models import Asset, Event, Evidence, Indication, Organization, Report, Target
 from packages.obsidian_exporter.exporter import EntityLabels, export_event_note, export_report_note
@@ -59,10 +60,28 @@ def export_reports(session: Session, vault_root: Path) -> int:
     return count
 
 
+def _ensure_vault_git_identity(vault_root: Path) -> None:
+    """Vault 独立仓库首次 commit 需本地 identity（不修改 global git config）。"""
+    email = subprocess.run(
+        ["git", "config", "user.email"],
+        cwd=vault_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if email.stdout.strip():
+        return
+    name = os.getenv("VAULT_GIT_USER_NAME", "target-intelligence")
+    mail = os.getenv("VAULT_GIT_USER_EMAIL", "Charlie780405@outlook.com")
+    subprocess.run(["git", "config", "user.name", name], cwd=vault_root, check=True)
+    subprocess.run(["git", "config", "user.email", mail], cwd=vault_root, check=True)
+
+
 def git_sync_vault(vault_root: Path, *, remote: str | None = None, message: str = "sync vault") -> bool:
     """在 Vault 目录 git add/commit/push；无 remote 时仅 commit。"""
     if not (vault_root / ".git").exists():
         subprocess.run(["git", "init"], cwd=vault_root, check=True, capture_output=True)
+    _ensure_vault_git_identity(vault_root)
     subprocess.run(["git", "add", "-A"], cwd=vault_root, check=True, capture_output=True)
     status = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -73,7 +92,16 @@ def git_sync_vault(vault_root: Path, *, remote: str | None = None, message: str 
     )
     if not status.stdout.strip():
         return False
-    subprocess.run(["git", "commit", "-m", message], cwd=vault_root, check=True, capture_output=True)
+    commit = subprocess.run(
+        ["git", "commit", "-m", message],
+        cwd=vault_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if commit.returncode != 0:
+        err = (commit.stderr or commit.stdout or "").strip()
+        raise RuntimeError(f"vault git commit failed: {err}")
     git_remote = remote or os.getenv("VAULT_GIT_REMOTE")
     if not git_remote:
         return False
@@ -88,7 +116,25 @@ def git_sync_vault(vault_root: Path, *, remote: str | None = None, message: str 
         subprocess.run(["git", "remote", "set-url", "origin", git_remote], cwd=vault_root, check=True)
     else:
         subprocess.run(["git", "remote", "add", "origin", git_remote], cwd=vault_root, check=True)
-    subprocess.run(["git", "push", "-u", "origin", "HEAD"], cwd=vault_root, check=True, capture_output=True)
+    push = subprocess.run(
+        ["git", "push", "-u", "origin", "HEAD"],
+        cwd=vault_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if push.returncode != 0:
+        err = (push.stderr or push.stdout or "").strip()
+        import sys
+
+        print(f"WARN vault git push failed: {err}", file=sys.stderr)
+        if git_remote.startswith("https://"):
+            print(
+                "HINT: 服务器请改用 SSH remote，例如 "
+                "git@github.com:Charlie780405/target-intel-vault.git",
+                file=sys.stderr,
+            )
+        return False
     return True
 
 
@@ -102,6 +148,7 @@ def publish_vault(
 ) -> PublishStats:
     stats = PublishStats()
     if generate_weekly:
+        backfill_event_target_ids(session)
         start, end = default_week_window()
         save_weekly_report(session, start, end, use_llm=use_llm)
         session.commit()
@@ -113,6 +160,10 @@ def publish_vault(
 
 def main() -> None:
     import argparse
+
+    from packages.domain.env import load_project_env
+
+    load_project_env()
 
     parser = argparse.ArgumentParser(description="Export events/reports to Obsidian Vault and git sync")
     parser.add_argument("--vault", type=Path, default=Path(os.getenv("VAULT_PATH", "vault")))

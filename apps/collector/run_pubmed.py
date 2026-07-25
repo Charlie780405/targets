@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -94,6 +94,18 @@ def persist_publication(
 
     session.flush()
 
+    # SQLite JSON 列不能直接存 date；Crossref enrich 可能写入 date 对象
+    def _json_safe(value: object) -> object:
+        if isinstance(value, date):
+            return value.isoformat()
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if isinstance(value, dict):
+            return {k: _json_safe(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_json_safe(v) for v in value]
+        return value
+
     source_doc = SourceDocument(
         id=f"SDOC-PM-{publication.id}",
         source_id=doc.source_id,
@@ -103,7 +115,9 @@ def persist_publication(
         published_at=doc.published_at,
         fetched_at=datetime.now(tz=UTC),
         content_hash=doc.content_hash,
-        payload_json={k: v for k, v in payload.items() if k != "raw_xml"},
+        payload_json={
+            k: _json_safe(v) for k, v in payload.items() if k != "raw_xml"
+        },
     )
     session.merge(source_doc)
 
@@ -123,6 +137,7 @@ def persist_publication(
             discovered_at=datetime.now(tz=UTC),
             title=publication.title,
             summary="; ".join(summary_parts),
+            target_id=extracted.get("target_id"),
             medical_review_status=MedicalReviewStatus.PENDING,
             source_count=1,
             content_hash=doc.content_hash,
@@ -161,35 +176,38 @@ def persist_publication(
 
 def run_collect(*, dry_run: bool = False) -> dict[str, int]:
     stats = {"fetched": 0, "publications": 0, "events": 0, "merged": 0}
+    # Crossref 在 persist 阶段仍会发请求，须与 PubMed 同处于 with 内，避免 client 被提前 close
     with PubMedAdapter() as pubmed, CrossrefAdapter() as crossref:
         documents = pubmed.fetch()
+        stats["fetched"] = len(documents)
+        if dry_run:
+            return stats
 
-    stats["fetched"] = len(documents)
-    if dry_run:
-        return stats
-
-    session = SessionLocal()
-    try:
-        for doc in documents:
-            existing_before = session.scalar(
-                select(Publication).where(Publication.pmid == doc.external_id)
-            )
-            _publication, event = persist_publication(session, doc, crossref=crossref)
-            stats["publications"] += 1
-            if existing_before:
-                stats["merged"] += 1
-            if event:
-                stats["events"] += 1
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+        session = SessionLocal()
+        try:
+            for doc in documents:
+                existing_before = session.scalar(
+                    select(Publication).where(Publication.pmid == doc.external_id)
+                )
+                _publication, event = persist_publication(session, doc, crossref=crossref)
+                stats["publications"] += 1
+                if existing_before:
+                    stats["merged"] += 1
+                if event:
+                    stats["events"] += 1
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
     return stats
 
 
 def main() -> None:
+    from packages.domain.env import load_project_env
+
+    load_project_env()
     parser = argparse.ArgumentParser(description="Collect PubMed publications")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--init-db", action="store_true")
