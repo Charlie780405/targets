@@ -22,7 +22,8 @@ from apps.reporter.dashboard import export_pending_review_dashboard
 from apps.reporter.review_queue import select_review_queue_event_ids
 from apps.reporter.score_events import score_all_events
 from apps.reporter.weekly import default_week_window, save_weekly_report
-from packages.domain.enums import EventType, MedicalReviewStatus
+from apps.reporter.weekly_cleanup import cleanup_weekly_briefs, is_empty_weekly_brief
+from packages.domain.enums import EventType, MedicalReviewStatus, ReportType
 from packages.domain.models import Asset, Event, Evidence, Indication, Organization, Report, Target
 from packages.obsidian_exporter.exporter import (
     EntityLabels,
@@ -40,6 +41,7 @@ class PublishStats:
     git_pushed: bool = False
     events_skipped: int = 0
     vault_pruned: int = 0
+    weekly_briefs_pruned: int = 0
 
 
 def should_export_to_vault(
@@ -173,6 +175,8 @@ def export_reports(session: Session, vault_root: Path) -> int:
         if key in seen_periods:
             continue
         seen_periods.add(key)
+        if report.report_type == ReportType.WEEKLY and is_empty_weekly_brief(report.body_markdown):
+            continue
         target = session.get(Target, report.target_id) if report.target_id else None
         export_report_note(report, vault_root, target_name=target.canonical_name if target else None)
         count += 1
@@ -299,6 +303,8 @@ def publish_vault(
     )
     stats.events_exported = exported
     stats.events_skipped = skipped
+    cleanup = cleanup_weekly_briefs(session, vault_root)
+    stats.weekly_briefs_pruned = cleanup["db_removed"] + cleanup["vault_pruned"]
     stats.reports_exported = export_reports(session, vault_root)
     export_pending_review_dashboard(session, vault_root)
     export_approved_publications_digest(session, vault_root, use_llm=use_llm)
@@ -342,8 +348,8 @@ def main() -> None:
         session.commit()
         print(
             f"publish: events={stats.events_exported} skipped={stats.events_skipped} "
-            f"pruned={stats.vault_pruned} reports={stats.reports_exported} "
-            f"git_pushed={stats.git_pushed}"
+            f"pruned={stats.vault_pruned} weekly_pruned={stats.weekly_briefs_pruned} "
+            f"reports={stats.reports_exported} git_pushed={stats.git_pushed}"
         )
     finally:
         session.close()

@@ -25,6 +25,7 @@ EnvironmentFile=-$ROOT/.env
 ExecStart=/usr/bin/python3 -m apps.collector.run_clinicaltrials --init-db
 ExecStart=/usr/bin/python3 -m apps.collector.run_pubmed
 ExecStart=/usr/bin/python3 -m apps.collector.run_companies
+# LLM 摘要（首次部署执行一次：pip install 'openai>=1.30' --break-system-packages）
 StandardOutput=journal
 StandardError=journal
 
@@ -54,12 +55,42 @@ Type=oneshot
 WorkingDirectory=$ROOT
 Environment=DATABASE_URL=sqlite:////$ROOT/data/target_intel.sqlite
 EnvironmentFile=-$ROOT/.env
-ExecStart=/usr/bin/python3 -m apps.reporter.publish --vault $ROOT/vault
+ExecStart=/bin/bash $ROOT/scripts/vault-sync-publish.sh --force
 StandardOutput=journal
 StandardError=journal
 
 [Install]
 WantedBy=default.target
+"
+
+write_unit target-intel-vault-sync.service "[Unit]
+Description=Target Intelligence — Vault 审阅 pull + review_sync + LLM publish
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=$ROOT
+Environment=DATABASE_URL=sqlite:////$ROOT/data/target_intel.sqlite
+EnvironmentFile=-$ROOT/.env
+ExecStart=/bin/bash $ROOT/scripts/vault-sync-publish.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+"
+
+write_unit target-intel-vault-sync.timer "[Unit]
+Description=Target Intelligence — 每 10 分钟检测 Vault 审阅变更
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target
 "
 
 write_unit target-intel-weekly.timer "[Unit]
@@ -76,7 +107,7 @@ WantedBy=timers.target
 "
 
 systemctl --user daemon-reload
-systemctl --user enable --now target-intel-collect.timer target-intel-weekly.timer
+systemctl --user enable --now target-intel-collect.timer target-intel-weekly.timer target-intel-vault-sync.timer
 
 echo ""
 echo "已安装 user systemd timer："

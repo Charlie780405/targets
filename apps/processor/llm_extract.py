@@ -83,14 +83,17 @@ def _call_openai(prompt: str) -> str | None:
     except ImportError:
         return None
 
-    client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
-    )
-    content: Any = response.choices[0].message.content
-    return str(content) if content is not None else None
+    try:
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+        )
+        content: Any = response.choices[0].message.content
+        return str(content) if content is not None else None
+    except Exception:
+        return None
 
 
 def llm_extract_event(event: Event, evidences: list[Evidence]) -> EventExtractResult | None:

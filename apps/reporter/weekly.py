@@ -188,7 +188,20 @@ def generate_weekly_brief(
 
     events = _query_events(session, period_start, period_end, target_id)
     prior = _query_prior_events(session, period_start, target_id)
-    evidences_map = _evidences_by_event(session, [e.id for e in events])
+    approved_pubs = list(
+        session.scalars(
+            select(Event)
+            .where(
+                Event.event_type == EventType.PUBLICATION,
+                Event.medical_review_status == MedicalReviewStatus.APPROVED,
+                Event.target_id == target_id,
+            )
+            .order_by(Event.event_date.desc())
+            .limit(10)
+        ).all()
+    )
+    all_ids = list({e.id for e in events} | {e.id for e in approved_pubs})
+    evidences_map = _evidences_by_event(session, all_ids)
 
     score_and_update_events(session, events, evidences_map, prior, reference_date=period_end)
     groups = apply_merge_to_events(events, evidences_map)
@@ -200,6 +213,24 @@ def generate_weekly_brief(
         target_name=target_name,
         use_llm=use_llm,
     )
+    week_ids = {g.primary.id for g in groups}
+    for ev in approved_pubs:
+        if ev.id in week_ids:
+            continue
+        evs = evidences_map.get(ev.id, [])
+        extract, _ = extract_event_summary(ev, evs, use_llm=use_llm)
+        sources = [{"name": e.source_name, "url": e.source_url} for e in evs]
+        snippet = evs[0].evidence_snippet if evs else None
+        ctx.key_conclusions.append(
+            KeyConclusion(
+                title=ev.title,
+                conclusion=extract.summary_zh,
+                evidence_snippet=snippet,
+                sources=sources,
+                confidence_label=confidence_label(ev.confidence_score or 0.0),
+                impact=extract.impact,
+            )
+        )
     return render_weekly_brief(ctx)
 
 
