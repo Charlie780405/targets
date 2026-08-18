@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -225,5 +226,12 @@ def parse_frontmatter(markdown: str) -> dict[str, Any]:
     parts = markdown.split("---", 2)
     if len(parts) < 3:
         return {}
-    raw = yaml.safe_load(parts[1])
+    try:
+        raw = yaml.safe_load(parts[1])
+    except yaml.YAMLError as exc:
+        # Vault 里同时存在模板占位符（{{date:...}} 会被解析成不可哈希的 dict 键）
+        # 与 OCR 产物，两者都可能产出非法 YAML。批量遍历 Vault 的调用方
+        # （review_sync / publish / weekly_cleanup）不能因单个文件而整体失败。
+        print(f"warn: frontmatter 解析失败，已跳过该文件: {exc}", file=sys.stderr)
+        return {}
     return raw if isinstance(raw, dict) else {}

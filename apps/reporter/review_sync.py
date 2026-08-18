@@ -24,13 +24,17 @@ class ReviewSyncStats:
     skipped: int = 0
 
 
+# 模板目录里的文件是待渲染骨架（含 {{date:...}} 占位符），不是真实笔记
+_TEMPLATE_DIR_NAMES = frozenset({"99-Templates", "Templates"})
+
+
 def _iter_vault_markdown(vault_root: Path) -> list[Path]:
     files: list[Path] = []
     for rel in TOP_LEVEL_DIRS:
         dir_path = vault_root / rel
         if dir_path.is_dir():
             files.extend(dir_path.rglob("*.md"))
-    return files
+    return [p for p in files if _TEMPLATE_DIR_NAMES.isdisjoint(p.parts)]
 
 
 def sync_review_status_from_vault(session: Session, vault_root: Path) -> ReviewSyncStats:
