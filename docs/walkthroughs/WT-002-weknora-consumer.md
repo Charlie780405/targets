@@ -1,6 +1,6 @@
 # WT-002：WeKnora 文献证据接收端
 
-状态：代码、隔离数据库门禁和真实公网正向拉取/幂等验收完成；Targets 接收实现和重复标识修复已合并到 `main`；撤销同步、人工审核回写和正式备份恢复仍待独立门禁。
+状态：代码、隔离数据库门禁、真实公网正向/幂等/撤销同步和人工审核回写验收完成；Targets 接收实现和重复标识修复已合并到 `main`；正式备份恢复与定时任务启用仍待独立门禁。
 
 ## 目标
 
@@ -31,6 +31,12 @@ bash scripts/verify-plan-002-weknora-consumer.sh
 - 修复后真实写入返回 `fetched=5 created=5`，第二次真实复跑返回 `fetched=5 unchanged=5`；数据库核对为 `projections=5 active=5`，所有投影保持待审，不触发 Vault 发布。
 - 使用无效 Key 的真实 dry-run 返回 HTTP 401，且没有写库；此前的重复失败事务也已回滚，没有半成品投影。
 
+### 2026-09-24 撤销传播与人工审核回写门禁
+
+- 使用 Targets 当前 SQLite 的临时备份副本，预置与 WeKnora 已撤销工件对应的 active 投影；随后通过真实公网集合和真实限定 Key 执行正式同步 CLI，返回 `fetched=5 updated=5 revoked=1`。副本中的投影最终为 `status=revoked` 且 `revoked_at` 非空；主 Targets 数据库仍保持 `active=5`，未修改生产投影。
+- 在另一份临时副本中通过正式 `sync_collection` 生成 pending 事件和 Vault 审核笔记，模拟审核者只修改 `review_status: pending` 为 `approved`，再运行正式 `review_sync`；结果为 `review_notes=1 review_updated=1 status=approved publish_gate=True`。这证明人工审核回写和 WeKnora 投影活动状态发布门禁连通，临时副本随后删除。
+- 两次门禁均不下载原件、不写 WeKnora、不推送 Vault、不改变主 Targets 数据；临时副本、临时 Vault 和测试对象均已清理。
+
 真实联调命令（不把 Key 写入命令行或仓库）：
 
 ```bash
@@ -42,4 +48,4 @@ python3 -m apps.collector.run_weknora_literature \
 
 ## 回滚与遗留
 
-关闭定时/手工同步即可；数据库回滚使用 `alembic downgrade 62cca6f53ae0`，不删除既有 WeKnora 事件审计。当前仍需验证真实撤销同步、人工审核回写、浏览器/Targets 消费端验收和正式生产备份恢复；本次未启用 Targets 定时任务。
+关闭定时/手工同步即可；数据库回滚使用 `alembic downgrade 62cca6f53ae0`，不删除既有 WeKnora 事件审计。当前仍需浏览器/Targets 消费端验收、正式生产备份恢复和定时任务灰度；本次未启用 Targets 定时任务。
