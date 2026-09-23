@@ -1,6 +1,6 @@
 # WT-002：WeKnora 文献证据接收端
 
-状态：代码和隔离数据库门禁完成；Targets `main` 已合并推送 `c2ef696`；真实公网 API Key/KB 拉取联调待配置专用 retrieve Key 后执行。
+状态：代码和隔离数据库门禁完成；Targets 接收实现和质量修复已合并到 `main`，代码门禁基线为 `e63c5d7`；真实公网 API Key/KB 拉取联调待配置专用 retrieve Key 后执行。
 
 ## 目标
 
