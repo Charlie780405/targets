@@ -76,11 +76,12 @@ def prune_vault_publications(
     session: Session,
     vault_root: Path,
     *,
-    review_queue_ids: set[str],
+    review_queue_ids: set[str] | None = None,
     min_importance: str | None,
     min_relevance: float,
 ) -> int:
     """删除 06-Publications 中不满足 002b 导出门槛的历史笔记。"""
+    queue_ids = review_queue_ids if review_queue_ids is not None else set()
     if not should_prune_vault():
         return 0
     pub_dir = vault_root / "06-Publications"
@@ -102,7 +103,7 @@ def prune_vault_publications(
             session,
             event,
             evidences,
-            review_queue_ids=review_queue_ids,
+            review_queue_ids=queue_ids,
             min_importance=min_importance,
             min_relevance=min_relevance,
         ):
