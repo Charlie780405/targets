@@ -2,11 +2,12 @@
 
 from datetime import date
 
+from sqlalchemy.orm import Session
+
 from apps.reporter.publish import prune_vault_publications
 from packages.domain.enums import EventType, EvidenceLevel, MedicalReviewStatus
 from packages.domain.models import Event, Evidence, Publication
 from packages.obsidian_exporter.exporter import export_event_note
-from sqlalchemy.orm import Session
 
 
 def test_prune_removes_low_relevance_publication(tmp_path, session: Session) -> None:
