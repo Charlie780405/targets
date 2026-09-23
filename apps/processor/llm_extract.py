@@ -79,7 +79,7 @@ def _call_openai(prompt: str) -> str | None:
     if not api_key:
         return None
     try:
-        from openai import OpenAI  # type: ignore[import-not-found]
+        from openai import OpenAI
     except ImportError:
         return None
 
@@ -92,7 +92,7 @@ def _call_openai(prompt: str) -> str | None:
         )
         content: Any = response.choices[0].message.content
         return str(content) if content is not None else None
-    except Exception:
+    except Exception:  # noqa: BLE001 - LLM 失败必须降级为规则路径
         return None
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -109,4 +109,4 @@ def analyze_publication(
 
 
 def analysis_to_payload(result: PublicationAnalysisResult) -> dict[str, Any]:
-    return cast(dict[str, Any], result.model_dump())
+    return result.model_dump()

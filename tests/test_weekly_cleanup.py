@@ -1,6 +1,6 @@
 """空周报清理单测。"""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -14,7 +14,6 @@ from apps.reporter.weekly_cleanup import (
 from packages.domain.enums import ReportType
 from packages.domain.models import Report, Target
 from packages.obsidian_exporter.vault_layout import weekly_note_path
-
 
 EMPTY_BODY = """# IL-4Rα 靶点情报周报（草稿）
 
@@ -74,13 +73,13 @@ def test_dedupe_weekly_reports_in_db(session: Session) -> None:
         session,
         "RPT-old",
         EMPTY_BODY,
-        generated_at=datetime(2026, 7, 25, 10, tzinfo=timezone.utc),
+        generated_at=datetime(2026, 7, 25, 10, tzinfo=UTC),
     )
     _add_weekly(
         session,
         "RPT-new",
         SUBSTANTIVE_BODY,
-        generated_at=datetime(2026, 7, 25, 12, tzinfo=timezone.utc),
+        generated_at=datetime(2026, 7, 25, 12, tzinfo=UTC),
     )
     session.flush()
     removed = dedupe_weekly_reports_in_db(session)
@@ -116,7 +115,7 @@ def test_cleanup_weekly_briefs(session: Session, tmp_path: Path) -> None:
         session,
         "RPT-empty",
         EMPTY_BODY,
-        generated_at=datetime(2026, 7, 25, 10, tzinfo=timezone.utc),
+        generated_at=datetime(2026, 7, 25, 10, tzinfo=UTC),
     )
     brief_dir = tmp_path / "09-Weekly-Briefs"
     brief_dir.mkdir(parents=True)

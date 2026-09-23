@@ -2,10 +2,11 @@
 
 from datetime import date
 
+from sqlalchemy.orm import Session
+
 from apps.reporter.review_queue import apply_relevance_profile, select_review_queue_event_ids
 from packages.domain.enums import EventType, EvidenceLevel, MedicalReviewStatus
 from packages.domain.models import Event, Evidence, Publication
-from sqlalchemy.orm import Session
 
 
 def test_allergen_immunotherapy_penalized() -> None:
