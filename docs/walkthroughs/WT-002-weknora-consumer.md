@@ -1,6 +1,6 @@
 # WT-002：WeKnora 文献证据接收端
 
-状态：代码和隔离数据库门禁完成；真实公网 API Key/KB 拉取联调待配置专用 retrieve Key 后执行。
+状态：代码和隔离数据库门禁完成；Targets `main` 已合并推送 `7a50cb2`；真实公网 API Key/KB 拉取联调待配置专用 retrieve Key 后执行。
 
 ## 目标
 
@@ -10,7 +10,8 @@
 
 - `apps/collector/weknora_literature.py`：Pydantic 外部响应校验、分页一致性、状态/权利门禁、重定向拒绝、内部存储字段拒绝和 API Key 请求头边界。
 - `apps/collector/run_weknora_literature.py`：受环境变量或 owner-only 文件提供 Key 的同步 CLI，默认写本地待审投影，`--dry-run` 只拉取不落库。
-- `WeKnoraEvidenceProjection`：以 `knowledge_base_id + artifact_id` 唯一幂等；内容哈希改变时重新进入 pending；完整集合中消失的记录标记 `revoked`，不删除事件、来源或证据审计。
+- `WeKnoraEvidenceProjection`：以 `knowledge_base_id + artifact_id` 唯一幂等；内容哈希改变或 revoked 投影重新出现时重新进入 pending；完整集合中消失的记录标记 `revoked`，不删除事件、来源或证据审计。
+- 有 DOI/PMID/PMCID 时生成 canonical 来源链接；无法从交换包判定来源等级时保守落为 E 级并保留 `weknora://` 内部追踪 URI，不把待审投影伪装成医学结论。
 - 现有 Vault 发布和 frontmatter 回写均拒绝 revoked 投影；其它 Targets 事件保持原有行为。
 - `migrations/versions/002_weknora_evidence_projection.py`：增加可回退投影表。
 
@@ -20,7 +21,7 @@
 bash scripts/verify-plan-002-weknora-consumer.sh
 ```
 
-已通过：5 项 Python 契约/幂等/撤销测试、ruff 检查、Alembic upgrade → downgrade → upgrade。全仓 `mypy` 仍有两个既有错误（`apps/processor/llm_extract.py` 的 unused ignore、`publication_analysis.py` 的 redundant cast），与本切片无关。
+已通过：7 项 Python 契约/幂等/来源等级/撤销重现测试、ruff 检查、Alembic upgrade → downgrade → upgrade。全仓 `mypy` 仍有两个既有错误（`apps/processor/llm_extract.py` 的 unused ignore、`publication_analysis.py` 的 redundant cast），与本切片无关；全仓 pytest 另有既有的 `tests/test_vault_prune.py` 必填参数失败，与本切片无关。
 
 真实联调命令（不把 Key 写入命令行或仓库）：
 
