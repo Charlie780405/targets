@@ -10,6 +10,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from apps.collector.weknora_literature import is_active_weknora_event
 from apps.processor.publication_relevance import (
     export_min_relevance,
     load_publication_filter_config,
@@ -54,6 +55,8 @@ def should_export_to_vault(
     min_relevance: float,
 ) -> bool:
     """003：publication 走审核队列；approved 必导出；rejected 不导出。"""
+    if not is_active_weknora_event(session, event.id):
+        return False
     if event.medical_review_status == MedicalReviewStatus.REJECTED:
         return False
     if event.event_type == EventType.PUBLICATION:

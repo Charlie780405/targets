@@ -9,6 +9,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from apps.collector.weknora_literature import is_active_weknora_event
 from packages.domain.enums import MedicalReviewStatus
 from packages.domain.models import Event
 from packages.obsidian_exporter.exporter import parse_frontmatter
@@ -54,6 +55,9 @@ def sync_review_status_from_vault(session: Session, vault_root: Path) -> ReviewS
             continue
         event = session.get(Event, str(event_id))
         if event is None:
+            stats.skipped += 1
+            continue
+        if not is_active_weknora_event(session, event.id):
             stats.skipped += 1
             continue
         new_status = MedicalReviewStatus(status_str)
