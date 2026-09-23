@@ -1,6 +1,6 @@
 # WT-002：WeKnora 文献证据接收端
 
-状态：代码和隔离数据库门禁完成；Targets 接收实现和质量修复已合并到 `main`，代码门禁基线为 `e63c5d7`；真实公网 API Key/KB 拉取联调待配置专用 retrieve Key 后执行。
+状态：代码、隔离数据库门禁和真实公网正向拉取/幂等验收完成；Targets 接收实现和重复标识修复已合并到 `main`；撤销同步、人工审核回写和正式备份恢复仍待独立门禁。
 
 ## 目标
 
@@ -23,6 +23,14 @@ bash scripts/verify-plan-002-weknora-consumer.sh
 
 已通过：7 项 Python 契约/幂等/来源等级/撤销重现测试、ruff 检查、Alembic upgrade → downgrade → upgrade。全仓 `mypy` 仍有两个既有错误（`apps/processor/llm_extract.py` 的 unused ignore、`publication_analysis.py` 的 redundant cast），与本切片无关；全仓 pytest 另有既有的 `tests/test_vault_prune.py` 必填参数失败，与本切片无关。
 
+### 2026-09-24 真实公网联调
+
+- 使用仅授予 `retrieve`、且只允许 KB `203262b3-452d-4066-9f7f-6c97eba87ffc` 的短期 Key；Key 仅保存于 Targets `secrets/` 下的 owner-only 文件，不写入 Git、日志或命令参数，明文不进入本记录。
+- 目标 SQLite 先从 Alembic `62cca6f53ae0` 升级到 `9b8f2c1d7e4a`，升级前保留权限为 `0600` 的备份，迁移后确认投影表存在且当前为 head。
+- 真实 dry-run 返回 `fetched=5`；首次写入暴露 JLSS/Mayiso 同一 PMID/DOI 在批内重复创建 Publication 的缺陷。修复为每条工件处理前显式 flush，使共享标识复用 canonical Publication；针对该场景新增回归测试。
+- 修复后真实写入返回 `fetched=5 created=5`，第二次真实复跑返回 `fetched=5 unchanged=5`；数据库核对为 `projections=5 active=5`，所有投影保持待审，不触发 Vault 发布。
+- 使用无效 Key 的真实 dry-run 返回 HTTP 401，且没有写库；此前的重复失败事务也已回滚，没有半成品投影。
+
 真实联调命令（不把 Key 写入命令行或仓库）：
 
 ```bash
@@ -34,4 +42,4 @@ python3 -m apps.collector.run_weknora_literature \
 
 ## 回滚与遗留
 
-关闭定时/手工同步即可；数据库回滚使用 `alembic downgrade 62cca6f53ae0`，不删除既有 WeKnora 事件审计。真实联调仍需验证 retrieve Key 的 KB allow-list、重复拉取、撤销同步、失效 Key 和生产备份恢复。
+关闭定时/手工同步即可；数据库回滚使用 `alembic downgrade 62cca6f53ae0`，不删除既有 WeKnora 事件审计。当前仍需验证真实撤销同步、人工审核回写、浏览器/Targets 消费端验收和正式生产备份恢复；本次未启用 Targets 定时任务。

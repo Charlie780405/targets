@@ -319,6 +319,11 @@ def _upsert_projection(
     row: WeKnoraEvidenceExport,
     now: datetime,
 ) -> tuple[str, str]:
+    # SessionLocal intentionally disables autoflush. Flush the previous row
+    # before looking up shared publication identifiers so that two WeKnora
+    # artifacts for the same DOI/PMID (for example JLSS and Mayiso copies)
+    # reuse one canonical Publication instead of queuing duplicate INSERTs.
+    session.flush()
     artifact = row.artifact
     projection_id = _projection_id(knowledge_base_id, artifact.artifact_id)
     source_document_id = _source_document_id(projection_id)

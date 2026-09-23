@@ -16,7 +16,7 @@ from apps.collector.weknora_literature import (
 )
 from apps.reporter.publish import should_export_to_vault
 from packages.domain.enums import EvidenceLevel, MedicalReviewStatus
-from packages.domain.models import Event, SourceDocument, WeKnoraEvidenceProjection
+from packages.domain.models import Event, Publication, SourceDocument, WeKnoraEvidenceProjection
 
 
 def evidence_row(artifact_id: str, *, sha256: str = "a" * 64) -> dict[str, object]:
@@ -161,6 +161,28 @@ def test_sync_is_idempotent_and_creates_pending_projection(session) -> None:  # 
     source_document = session.get(SourceDocument, projection.source_document_id)
     assert source_document is not None
     assert source_document.source_url == "https://doi.org/10.1000/example"
+
+
+def test_sync_reuses_publication_for_duplicate_doi_and_pmid_in_one_batch(session) -> None:  # type: ignore[no-untyped-def]
+    second = evidence_row("artifact-2", sha256="d" * 64)
+    second_artifact = second["artifact"]
+    assert isinstance(second_artifact, dict)
+    second_artifact["title"] = "Approved evidence source copy"
+
+    result = sync_collection(session, "kb-1", collection(evidence_row("artifact-1"), second))
+    session.commit()
+
+    assert result.created == 2
+    assert len(list(session.scalars(select(Publication)))) == 1
+    assert len(
+        list(
+            session.scalars(
+                select(WeKnoraEvidenceProjection).where(
+                    WeKnoraEvidenceProjection.knowledge_base_id == "kb-1"
+                )
+            )
+        )
+    ) == 2
 
 
 def test_sync_marks_missing_projection_revoked_and_does_not_delete_audit(session) -> None:  # type: ignore[no-untyped-def]
