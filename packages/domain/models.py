@@ -237,3 +237,45 @@ class Report(Base):
     body_markdown: Mapped[str] = mapped_column(Text, nullable=False)
     target_id: Mapped[str | None] = mapped_column(ForeignKey("targets.id"))
     generated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class WeKnoraEvidenceProjection(Base):
+    """WeKnora 批准证据在 Targets 的本地待审投影。
+
+    该表只保存已通过 WeKnora 权利和生命周期门禁的白名单投影；它不是
+    WeKnora 原件缓存，也不代表 Targets 已形成医学结论。撤销通过 status
+    保留审计记录并阻止后续 Vault 导出。
+    """
+
+    __tablename__ = "weknora_evidence_projections"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    knowledge_base_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    artifact_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    contract: Mapped[str] = mapped_column(String(128), nullable=False)
+    contract_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str | None] = mapped_column(Text)
+    doi: Mapped[str | None] = mapped_column(String(128))
+    pmid: Mapped[str | None] = mapped_column(String(32))
+    process_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    rights_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"))
+    event_id: Mapped[str | None] = mapped_column(ForeignKey("events.id"))
+    payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "knowledge_base_id",
+            "artifact_id",
+            name="uq_weknora_projection_kb_artifact",
+        ),
+    )
