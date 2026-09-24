@@ -26,6 +26,7 @@ services:
       - .:/app
       - ./data:/app/data
       - ./vault:/app/vault
+      - ./secrets:/app/secrets:ro
     environment:
       DATABASE_URL: sqlite:////app/data/target_intel.sqlite
       VAULT_PATH: /app/vault
