@@ -60,4 +60,7 @@ def create_app(engine: Engine | None = None) -> Any:
     def health() -> dict[str, Any]:
         return health_payload(engine)
 
+    from apps.review_workbench import create_review_router
+
+    app.include_router(create_review_router(engine))
     return app
