@@ -1,6 +1,6 @@
 # WT-002：WeKnora 文献证据接收端
 
-状态：代码、隔离数据库门禁、真实公网正向/幂等/撤销同步、人工审核回写和定时配置门禁验收完成；Targets 接收实现和重复标识修复已合并到 `main`；正式备份恢复与定时任务生产启用仍待独立门禁。
+状态：代码、隔离数据库门禁、真实公网正向/幂等/撤销同步、人工审核回写、Targets 浏览器工作台和单 KB 短窗口调度验收完成；Targets 接收实现和重复标识修复已合并到 `main`；常驻调度默认关闭，正式备份恢复与全量生产启用仍待独立门禁。
 
 ## 目标
 
@@ -14,6 +14,8 @@
 - `WeKnoraEvidenceProjection`：以 `knowledge_base_id + artifact_id` 唯一幂等；内容哈希改变或 revoked 投影重新出现时重新进入 pending；完整集合中消失的记录标记 `revoked`，不删除事件、来源或证据审计。
 - 有 DOI/PMID/PMCID 时生成 canonical 来源链接；无法从交换包判定来源等级时保守落为 E 级并保留 `weknora://` 内部追踪 URI，不把待审投影伪装成医学结论。
 - 现有 Vault 发布和 frontmatter 回写均拒绝 revoked 投影；其它 Targets 事件保持原有行为。
+- `apps/review_workbench.py` 与 `apps/review_workbench_ui.py`：默认关闭的回环浏览器工作台，按限定 KB 分页展示脱敏投影；审核写回必须携带秘密令牌，并拒绝 revoked/孤儿投影。
+- 工作台只展示白名单中的题录、来源、页级摘录和哈希，不展示 `source_url`、`download_url`、`storage_key`、`host_path` 或原件；前端使用 DOM `textContent`，不把外部证据当 HTML。
 - `migrations/versions/002_weknora_evidence_projection.py`：增加可回退投影表。
 
 ## 验证
@@ -43,7 +45,13 @@ bash scripts/verify-plan-002-weknora-consumer.sh
 - 新增 `WEKNORA_SYNC_ENABLED`、`WEKNORA_BASE_URL`、`WEKNORA_TARGETS_KB_ID`、密钥来源及 UTC 时刻配置；默认关闭，不会因升级自动启动 WeKnora 拉取。
 - owner-only 文件和环境变量两种密钥来源均只在同步子进程中读取；调度器命令只传文件路径或环境变量名，日志不记录 Key。
 - 配置缺失、密钥文件不存在/权限超过 `0600`、地址含用户信息或查询参数、时间越界时，调度器安全跳过并保留其它采集作业。
-- `tests/test_scheduler.py` 4 项、全仓 `pytest` 91 项及 ruff 均通过；本节点未启用 Targets scheduler profile，未改变生产数据库。
+- `tests/test_scheduler.py` 4 项、工作台专项 7 项、全仓 `pytest` 和 ruff 均通过；单 KB 短窗口调度另有 PLAN-002 O3 证据，常驻 scheduler profile 仍默认关闭。
+
+### 2026-09-24 Targets 浏览器工作台
+
+- 访问 `/targets/review` 前必须同时配置 `TARGETS_REVIEW_UI_ENABLED=true` 和限定 `TARGETS_REVIEW_UI_KB_ID`；默认关闭时返回 404。建议只通过回环绑定/SSH 隧道访问，不将 health 端口公开到公网。
+- `GET /targets/api/projections?status=pending|active|revoked|all&limit=...&offset=...` 返回统一分页结构；`PATCH /targets/api/projections/{projection_id}/review` 需要 `Authorization: Bearer <TARGETS_REVIEW_UI_TOKEN>`，状态仅写回本地关联事件，不下载原件或自动发布医学结论。
+- 审核理由仅用于请求校验和长度审计，不写入 WeKnora 投影；现有 Vault 发布门禁仍是最终发布控制点。撤销投影始终只读。
 
 真实联调命令（不把 Key 写入命令行或仓库）：
 
