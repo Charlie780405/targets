@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from apps.collector.weknora_literature import weknora_available_clause
 from apps.processor.classify import enrich_event_classification
 from apps.processor.llm_extract import extract_event_summary, extract_weekly_summary
 from apps.processor.merge import MergedEventGroup, apply_merge_to_events
@@ -42,7 +43,9 @@ def _query_events(
     period_end: date,
     target_id: str | None,
 ) -> list[Event]:
-    stmt = select(Event).where(Event.event_date >= period_start, Event.event_date <= period_end)
+    stmt = select(Event).where(
+        Event.event_date >= period_start, Event.event_date <= period_end, weknora_available_clause()
+    )
     if target_id:
         stmt = stmt.where(Event.target_id == target_id)
     return list(session.scalars(stmt.order_by(Event.event_date.desc())).all())
@@ -195,6 +198,7 @@ def generate_weekly_brief(
                 Event.event_type == EventType.PUBLICATION,
                 Event.medical_review_status == MedicalReviewStatus.APPROVED,
                 Event.target_id == target_id,
+                weknora_available_clause(),
             )
             .order_by(Event.event_date.desc())
             .limit(10)
