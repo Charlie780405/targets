@@ -8,6 +8,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from apps.collector.weknora_literature import weknora_available_clause
 from apps.processor.publication_analysis import analyze_publication
 from apps.reporter.review_queue import profiled_publication_relevance
 from packages.domain.enums import EventType, MedicalReviewStatus
@@ -38,6 +39,7 @@ def export_approved_publications_digest(
             .where(
                 Event.event_type == EventType.PUBLICATION,
                 Event.medical_review_status == MedicalReviewStatus.APPROVED,
+                weknora_available_clause(),
             )
             .order_by(Event.event_date.desc())
         ).all()

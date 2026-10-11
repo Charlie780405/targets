@@ -11,6 +11,7 @@ import yaml  # type: ignore[import-untyped]
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from apps.collector.weknora_literature import weknora_available_clause
 from apps.processor.publication_relevance import publication_relevance_for_event
 from packages.domain.enums import EventType, MedicalReviewStatus
 from packages.domain.models import Event, Evidence
@@ -80,6 +81,7 @@ def select_review_queue_event_ids(session: Session) -> set[str]:
             select(Event.id).where(
                 Event.event_type == EventType.PUBLICATION,
                 Event.medical_review_status == MedicalReviewStatus.APPROVED,
+                weknora_available_clause(),
             )
         ).all()
         selected.update(str(eid) for eid in approved)
@@ -89,6 +91,7 @@ def select_review_queue_event_ids(session: Session) -> set[str]:
             select(Event).where(
                 Event.event_type == EventType.PUBLICATION,
                 Event.medical_review_status == MedicalReviewStatus.PENDING,
+                weknora_available_clause(),
             )
         ).all()
     )

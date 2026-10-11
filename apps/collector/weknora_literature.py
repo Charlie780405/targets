@@ -12,7 +12,7 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, select
 from sqlalchemy.orm import Session
 
 from packages.domain.enums import EventType, EvidenceLevel, MedicalReviewStatus
@@ -516,6 +516,20 @@ def sync_collection(
         projection.revoked_at = now
         revoked += 1
     return SyncStats(created=created, updated=updated, unchanged=unchanged, revoked=revoked)
+
+
+def weknora_available_clause() -> ColumnElement[bool]:
+    """SQL 条件：事件没有绑定「已撤销/失效」的 WeKnora 投影（PLAN-005g-3）。
+
+    撤销、权利到期、取消发布、被取代都会让投影离开 active；此后即使事件曾被人工批准，
+    周报、已审摘要、审核队列和 Vault 都不得再发布它。事件与审核记录保留，投影重新 active 时
+    同步会把事件重置为待审（不自动批准）。未绑定投影的旧事件不受影响。"""
+
+    unavailable = select(WeKnoraEvidenceProjection.event_id).where(
+        WeKnoraEvidenceProjection.status != PROJECTION_ACTIVE,
+        WeKnoraEvidenceProjection.event_id.is_not(None),
+    )
+    return Event.id.not_in(unavailable)
 
 
 def is_active_weknora_event(session: Session, event_id: str) -> bool:
