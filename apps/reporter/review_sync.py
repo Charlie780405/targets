@@ -9,7 +9,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from apps.collector.weknora_literature import is_active_weknora_event
+from apps.weknora_history import is_active_weknora_event
 from packages.domain.enums import MedicalReviewStatus
 from packages.domain.models import Event
 from packages.obsidian_exporter.exporter import parse_frontmatter

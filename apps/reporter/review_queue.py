@@ -11,8 +11,8 @@ import yaml  # type: ignore[import-untyped]
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.collector.weknora_literature import weknora_available_clause
 from apps.processor.publication_relevance import publication_relevance_for_event
+from apps.weknora_history import weknora_available_clause
 from packages.domain.enums import EventType, MedicalReviewStatus
 from packages.domain.models import Event, Evidence
 

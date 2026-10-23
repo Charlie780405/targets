@@ -8,7 +8,6 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.collector.weknora_literature import weknora_available_clause
 from apps.processor.classify import enrich_event_classification
 from apps.processor.llm_extract import extract_event_summary, extract_weekly_summary
 from apps.processor.merge import MergedEventGroup, apply_merge_to_events
@@ -23,6 +22,7 @@ from apps.reporter.weekly_template import (
     WeeklyBriefContext,
     render_weekly_brief,
 )
+from apps.weknora_history import weknora_available_clause
 from packages.domain.enums import EventType, MedicalReviewStatus, ReportType
 from packages.domain.models import Event, Evidence, Report, Target
 

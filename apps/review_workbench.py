@@ -1,4 +1,4 @@
-"""WeKnora 证据投影的内网浏览与人工审核门禁。
+"""WeKnora 历史证据投影的内网只读浏览器。
 
 该模块只返回投影白名单字段，不读取或输出 WeKnora 原件、存储键、源 URL
 或宿主机路径。页面由 health 服务回环端口提供，不能替代 WeKnora 的事实源。
@@ -6,25 +6,19 @@
 
 from __future__ import annotations
 
-import hmac
-import logging
 import os
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
-from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from apps.collector.weknora_literature import is_active_weknora_event
 from packages.domain.enums import MedicalReviewStatus
 from packages.domain.models import Event, WeKnoraEvidenceProjection
 
-LOGGER = logging.getLogger(__name__)
 PROJECTION_ACTIVE = "active"
 PROJECTION_REVOKED = "revoked"
-_MAX_REASON_LENGTH = 2_000
 _MAX_EXCERPT_LENGTH = 4_000
 _MAX_LIST_ITEMS = 100
 _ARTIFACT_FIELDS = frozenset({"title", "doi", "pmid", "pmcid", "process_status", "rights_status"})
@@ -35,10 +29,6 @@ _PAGE_FIELDS = frozenset(
     {"page_number", "status", "citation_locator", "text_excerpt", "text_sha256"}
 )
 _ANCHOR_FIELDS = frozenset({"kind", "label", "excerpt"})
-
-
-class ReviewConflict(ValueError):
-    """投影已撤销、缺少关联事件或不再满足审核门禁。"""
 
 
 def _safe_string(value: object, *, limit: int = _MAX_EXCERPT_LENGTH) -> str | None:
@@ -106,23 +96,6 @@ def sanitize_projection_payload(payload: Mapping[str, Any] | object) -> dict[str
     return result
 
 
-def parse_review_decision(payload: Mapping[str, Any] | object) -> tuple[MedicalReviewStatus, str]:
-    """校验浏览器审核输入；理由不进入证据投影或 WeKnora 原件。"""
-
-    source = _safe_mapping(payload)
-    raw_status = source.get("status")
-    if not isinstance(raw_status, str):
-        raise TypeError("status 必须是字符串")
-    try:
-        status = MedicalReviewStatus(raw_status.strip().lower())
-    except ValueError as exc:
-        raise ValueError("status 不是受支持的审核状态") from exc
-    reason = _safe_string(source.get("reason"), limit=_MAX_REASON_LENGTH)
-    if not reason:
-        raise ValueError("reason 不能为空")
-    return status, reason
-
-
 def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value else None
 
@@ -151,7 +124,7 @@ def serialize_projection(
         "rights_status": projection.rights_status,
         "status": projection.status,
         "review_status": review_value,
-        "reviewable": projection.status == PROJECTION_ACTIVE and bool(projection.event_id),
+        "reviewable": False,
         "first_seen_at": _iso(projection.first_seen_at),
         "last_seen_at": _iso(projection.last_seen_at),
         "payload": sanitize_projection_payload(projection.payload_json),
@@ -222,39 +195,6 @@ def list_projection_rows(
     return serialized, total_count
 
 
-def apply_review_decision(
-    session: Session,
-    projection_id: str,
-    payload: Mapping[str, Any] | object,
-    *,
-    knowledge_base_id: str,
-) -> tuple[dict[str, Any], str]:
-    """将人工决定写回关联事件，拒绝 revoked/孤儿投影。"""
-
-    status, reason = parse_review_decision(payload)
-    projection = session.get(WeKnoraEvidenceProjection, projection_id)
-    if projection is None:
-        raise LookupError("投影不存在")
-    if projection.knowledge_base_id != knowledge_base_id:
-        raise LookupError("投影不存在")
-    if projection.status != PROJECTION_ACTIVE:
-        raise ReviewConflict("revoked 投影不可审核")
-    if not projection.event_id:
-        raise ReviewConflict("投影缺少关联审核事件")
-    event = session.get(Event, projection.event_id)
-    if event is None or not is_active_weknora_event(session, event.id):
-        raise ReviewConflict("关联事件不可审核")
-    event.medical_review_status = status
-    session.flush()
-    LOGGER.info(
-        "Targets 文献审核写回：projection=%s status=%s reason_length=%d",
-        projection.id,
-        status.value,
-        len(reason),
-    )
-    return serialize_projection(projection, review_status=status), reason
-
-
 def _review_ui_enabled() -> bool:
     return os.getenv("TARGETS_REVIEW_UI_ENABLED", "false").strip().lower() in {
         "1",
@@ -265,10 +205,7 @@ def _review_ui_enabled() -> bool:
 
 
 def _review_ui_kb_id() -> str:
-    return (
-        os.getenv("TARGETS_REVIEW_UI_KB_ID", "").strip()
-        or os.getenv("WEKNORA_TARGETS_KB_ID", "").strip()
-    )
+    return os.getenv("TARGETS_REVIEW_UI_KB_ID", "").strip()
 
 
 def _security_headers() -> dict[str, str]:
@@ -292,14 +229,6 @@ def _error_response(code: str, message: str, status_code: int) -> Any:
         status_code=status_code,
         headers=_security_headers(),
     )
-
-
-def _has_review_token(request: Any) -> bool:
-    expected = os.getenv("TARGETS_REVIEW_UI_TOKEN", "")
-    supplied = request.headers.get("authorization", "")
-    if not expected or not supplied.startswith("Bearer "):
-        return False
-    return hmac.compare_digest(supplied[7:], expected)
 
 
 def create_review_router(engine: Any) -> Any:
@@ -351,33 +280,6 @@ def create_review_router(engine: Any) -> Any:
                 headers=_security_headers(),
             )
         except ValueError as exc:
-            return _error_response("VALIDATION_ERROR", str(exc), 422)
-
-    @router.patch("/targets/api/projections/{projection_id}/review")
-    async def review_projection(request: Request, projection_id: str) -> Any:
-        unavailable_response = unavailable()
-        if unavailable_response is not None:
-            return unavailable_response
-        if not _has_review_token(request):
-            return _error_response("UNAUTHORIZED", "审核令牌无效或未配置", 401)
-        try:
-            payload = await request.json()
-            if not isinstance(payload, Mapping):
-                raise TypeError("请求体必须是 JSON 对象")
-            with Session(bind=bind) as session:
-                data, _reason = apply_review_decision(
-                    session,
-                    projection_id,
-                    payload,
-                    knowledge_base_id=_review_ui_kb_id(),
-                )
-                session.commit()
-            return JSONResponse({"data": data}, headers=_security_headers())
-        except LookupError as exc:
-            return _error_response("NOT_FOUND", str(exc), 404)
-        except ReviewConflict as exc:
-            return _error_response("REVIEW_CONFLICT", str(exc), 409)
-        except (TypeError, ValueError) as exc:
             return _error_response("VALIDATION_ERROR", str(exc), 422)
 
     return router

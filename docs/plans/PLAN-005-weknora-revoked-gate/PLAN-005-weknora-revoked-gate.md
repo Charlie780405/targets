@@ -8,7 +8,7 @@
 
 ## 变更
 
-- `apps/collector/weknora_literature.weknora_available_clause()`：SQL 条件，排除绑定了非 active 投影的事件；未绑定投影的旧事件不受影响。
+- `apps/weknora_history.weknora_available_clause()`：SQL 条件，排除绑定了非 active 历史投影的事件；未绑定投影的旧事件不受影响。新采集已在 PLAN-006 退役。
 - 应用到 `weekly._query_events`、周报已批准文献、`approved_digest`、`review_queue` 的已批准与待审查询（Vault 导出原本已用 `is_active_weknora_event`）。
 - 事件与审核记录保留，不改写人工结论；来源恢复后沿用既有行为——事件重置为待审，不自动恢复批准。
 

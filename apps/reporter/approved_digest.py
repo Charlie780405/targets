@@ -8,9 +8,9 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.collector.weknora_literature import weknora_available_clause
 from apps.processor.publication_analysis import analyze_publication
 from apps.reporter.review_queue import profiled_publication_relevance
+from apps.weknora_history import weknora_available_clause
 from packages.domain.enums import EventType, MedicalReviewStatus
 from packages.domain.models import Event, Evidence, Publication
 from packages.obsidian_exporter.publication_context import resolve_publication_export_context

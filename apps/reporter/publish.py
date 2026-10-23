@@ -10,7 +10,6 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.collector.weknora_literature import is_active_weknora_event
 from apps.processor.publication_relevance import (
     export_min_relevance,
     load_publication_filter_config,
@@ -24,6 +23,7 @@ from apps.reporter.review_queue import select_review_queue_event_ids
 from apps.reporter.score_events import score_all_events
 from apps.reporter.weekly import default_week_window, save_weekly_report
 from apps.reporter.weekly_cleanup import cleanup_weekly_briefs, is_empty_weekly_brief
+from apps.weknora_history import is_active_weknora_event
 from packages.domain.enums import EventType, MedicalReviewStatus, ReportType
 from packages.domain.models import Asset, Event, Evidence, Indication, Organization, Report, Target
 from packages.obsidian_exporter.exporter import (

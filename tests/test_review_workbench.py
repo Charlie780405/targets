@@ -9,13 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from apps.health import create_app
-from apps.review_workbench import (
-    ReviewConflict,
-    apply_review_decision,
-    parse_review_decision,
-    sanitize_projection_payload,
-    serialize_projection,
-)
+from apps.review_workbench import sanitize_projection_payload, serialize_projection
 from packages.domain.enums import EventType, MedicalReviewStatus
 from packages.domain.models import Event, WeKnoraEvidenceProjection
 
@@ -65,18 +59,6 @@ def test_sanitize_projection_payload_keeps_only_evidence_allowlist() -> None:
     }
 
 
-def test_parse_review_decision_validates_status_and_reason() -> None:
-    assert parse_review_decision({"status": "approved", "reason": "核对完成"}) == (
-        MedicalReviewStatus.APPROVED,
-        "核对完成",
-    )
-
-    with pytest.raises(ValueError, match="status"):
-        parse_review_decision({"status": "published", "reason": "不允许"})
-    with pytest.raises(ValueError, match="reason"):
-        parse_review_decision({"status": "rejected", "reason": ""})
-
-
 def test_serialize_projection_excludes_internal_fields() -> None:
     projection = _projection()
 
@@ -84,6 +66,7 @@ def test_serialize_projection_excludes_internal_fields() -> None:
 
     assert result["projection_id"] == "WK-projection-1"
     assert result["review_status"] == "pending"
+    assert result["reviewable"] is False
     assert "file_name" not in str(result)
     assert "storage_key" not in str(result)
     assert "source_url" not in str(result)
@@ -98,7 +81,7 @@ def test_serialize_revoked_projection_is_explicitly_not_reviewable() -> None:
     assert result["reviewable"] is False
 
 
-def test_review_workbench_lists_sanitized_pending_projection_and_writes_back(
+def test_review_workbench_lists_sanitized_historical_projection_read_only(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = create_engine(
@@ -123,7 +106,6 @@ def test_review_workbench_lists_sanitized_pending_projection_and_writes_back(
         session.commit()
 
     monkeypatch.setenv("TARGETS_REVIEW_UI_ENABLED", "true")
-    monkeypatch.setenv("TARGETS_REVIEW_UI_TOKEN", "test-review-token")
     monkeypatch.setenv("TARGETS_REVIEW_UI_KB_ID", "kb-1")
     client = TestClient(create_app(engine))
 
@@ -136,26 +118,21 @@ def test_review_workbench_lists_sanitized_pending_projection_and_writes_back(
     assert listing.status_code == 200
     body = listing.json()
     assert body["total"] == 1
-    assert body["data"][0]["reviewable"] is True
+    assert body["data"][0]["reviewable"] is False
     assert "source_url" not in listing.text
     assert "storage_key" not in listing.text
 
-    unauthorized = client.patch(
+    retired = client.patch(
         "/targets/api/projections/WK-projection-1/review",
         json={"status": "approved", "reason": "核对完成"},
     )
-    assert unauthorized.status_code == 401
-
-    reviewed = client.patch(
-        "/targets/api/projections/WK-projection-1/review",
-        headers={"Authorization": "Bearer test-review-token"},
-        json={"status": "approved", "reason": "核对完成"},
-    )
-    assert reviewed.status_code == 200
+    assert retired.status_code == 404
+    assert "审核令牌" not in page.text
+    assert "通过并回写" not in page.text
     with Session(engine) as session:
         refreshed = session.get(Event, "EVT-1")
         assert refreshed is not None
-        assert refreshed.medical_review_status == MedicalReviewStatus.APPROVED
+        assert refreshed.medical_review_status == MedicalReviewStatus.PENDING
 
 
 def test_review_workbench_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -167,35 +144,3 @@ def test_review_workbench_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "REVIEW_UI_DISABLED"
-
-
-def test_revoked_projection_cannot_be_reviewed() -> None:
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    from packages.domain.database import Base
-
-    Base.metadata.create_all(engine)
-    with Session(engine) as session:
-        session.add(
-            Event(
-                id="EVT-1",
-                event_type=EventType.PUBLICATION,
-                event_date=date(2026, 9, 24),
-                title="Evidence title",
-                medical_review_status=MedicalReviewStatus.PENDING,
-                content_hash="b" * 64,
-            )
-        )
-        session.add(_projection(status="revoked"))
-        session.commit()
-
-        with pytest.raises(ReviewConflict, match="revoked"):
-            apply_review_decision(
-                session,
-                "WK-projection-1",
-                {"status": "approved", "reason": "不应写回"},
-                knowledge_base_id="kb-1",
-            )
